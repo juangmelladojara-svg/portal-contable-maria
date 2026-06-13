@@ -15,8 +15,15 @@ export default function PortalLogin() {
     
     // Simulación de validación (acepta cualquier cosa para pruebas, o uno específico)
     if (email && password) {
+      const isAdmin = email.toLowerCase() === "admin@contabilidad.cl";
+      
       // Guardar sesión en LocalStorage
-      const userSession = {
+      const userSession = isAdmin ? {
+        name: "María (Admin)",
+        email: email,
+        role: "admin",
+        token: "admin-jwt-token-123"
+      } : {
         name: "Empresa Demo Spa",
         email: email,
         role: "client",
@@ -35,7 +42,11 @@ export default function PortalLogin() {
         localStorage.setItem("maria_portal_docs", JSON.stringify(fakeDocs));
       }
 
-      router.push("/portal/dashboard");
+      if (isAdmin) {
+        router.push("/portal/admin");
+      } else {
+        router.push("/portal/dashboard");
+      }
     } else {
       setError("Por favor, ingresa correo y contraseña.");
     }
