@@ -11,14 +11,14 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-500: #3b82f6;
-  --color-brand-600: #2563eb;
-  --color-brand-700: #1d4ed8;
-  --color-brand-900: #1e3a8a;
+  --color-brand-50: #f4f8fb;
+  --color-brand-100: #e4eff6;
+  --color-brand-500: #7eb0d5; /* Laguna nebulosa pastel blue */
+  --color-brand-600: #1C4173; /* Logo deep blue */
+  --color-brand-700: #16335a;
+  --color-brand-900: #0b1a2e;
   
-  --color-accent-500: #0ea5e9;
+  --color-accent-500: #c9a675; /* Logo gold script */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -37,4 +37,21 @@ body {
   .glass {
     @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-sm dark:bg-slate-900/70 dark:border-white/10;
   }
+  
+  .animate-marquee {
+    animation: marquee 25s linear infinite;
+  }
+  .animate-marquee2 {
+    animation: marquee2 25s linear infinite;
+  }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-100%); }
+}
+
+@keyframes marquee2 {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(0%); }
 }

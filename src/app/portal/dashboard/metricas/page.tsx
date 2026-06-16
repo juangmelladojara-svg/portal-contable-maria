@@ -16,7 +16,8 @@ export default function MetricasPage() {
     gastos: true,
     utilidad: true,
     iva: true,
-    remuneraciones: true
+    remuneraciones: true,
+    responsabilidades: true
   });
 
   const [showConfig, setShowConfig] = useState(false);
@@ -142,6 +143,18 @@ export default function MetricasPage() {
             <div className="mt-4 flex items-center text-xs text-slate-500">
               <svg className="text-red-500 mr-1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
               Estimación basada en F29
+            </div>
+          </div>
+        )}
+
+        {visibleWidgets.responsabilidades && (
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm print:border-slate-300 ring-2 ring-brand-500/20">
+            <h3 className="text-sm font-medium text-slate-500 mb-2">Próximos Pagos</h3>
+            <p className="text-lg font-bold text-slate-900 dark:text-white mb-1">F29 (IVA): 20 de Abril</p>
+            <p className="text-lg font-bold text-slate-900 dark:text-white">Previred: 13 de Abril</p>
+            <div className="mt-3 flex items-center text-xs text-brand-600 font-medium">
+              <svg className="mr-1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              Recordatorio activo
             </div>
           </div>
         )}

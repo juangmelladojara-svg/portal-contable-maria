@@ -7,10 +7,7 @@ export default function Home() {
       <header className="sticky top-0 z-50 glass border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded bg-brand-600 flex items-center justify-center text-white font-bold text-xl">
-              M
-            </div>
-            <span className="font-bold text-xl tracking-tight">Contabilidad con María</span>
+            <img src="/logo.png" alt="Contabilidad con María Logo" className="h-10 w-auto" />
           </div>
           <nav className="hidden md:flex gap-8 text-sm font-medium text-slate-600 dark:text-slate-300">
             <a href="#servicios" className="hover:text-brand-600 transition-colors">Servicios</a>
@@ -37,9 +34,6 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid md:grid-cols-2 gap-12 lg:gap-8 items-center">
               <div className="max-w-2xl">
-                <div className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold text-brand-600 bg-brand-50 ring-1 ring-inset ring-brand-600/20 mb-6 dark:bg-brand-500/10 dark:text-brand-400">
-                  Asesoría Tributaria y Contable
-                </div>
                 <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-6 leading-tight">
                   Tu contabilidad en orden, <span className="text-brand-600">sin estrés.</span>
                 </h1>
@@ -47,7 +41,7 @@ export default function Home() {
                   Delegar tus finanzas no debería ser un dolor de cabeza. Ofrecemos servicios contables, remuneraciones y asesoría tributaria para pequeñas y medianas empresas. Además, accede a todos tus documentos al instante con nuestro nuevo portal de clientes.
                 </p>
                 <div className="flex flex-wrap gap-4">
-                  <a href="#contacto" className="bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900 text-white text-base font-semibold py-3 px-6 rounded-md transition-all active:scale-95">
+                  <a href="https://calendly.com/" target="_blank" rel="noopener noreferrer" className="bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900 text-white text-base font-semibold py-3 px-6 rounded-md transition-all active:scale-95">
                     Agenda una asesoría
                   </a>
                   <a href="#servicios" className="bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 text-base font-semibold py-3 px-6 rounded-md transition-all">
@@ -107,6 +101,25 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Marcas / Cinta (Marquee) */}
+        <section className="py-10 border-y border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6 text-center">
+            <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Empresas que confían en nosotros</p>
+          </div>
+          <div className="relative flex overflow-x-hidden group">
+            <div className="py-2 animate-marquee whitespace-nowrap flex items-center gap-16 md:gap-24 px-8 min-w-max">
+              {['TechCorp', 'Innovate SpA', 'Global Logistics', 'Estudio Jurídico', 'Constructora Sur', 'StartUp X'].map((brand, i) => (
+                <span key={i} className="text-xl md:text-2xl font-bold text-slate-300 dark:text-slate-700">{brand}</span>
+              ))}
+            </div>
+            <div className="absolute top-0 py-2 animate-marquee2 whitespace-nowrap flex items-center gap-16 md:gap-24 px-8 min-w-max" aria-hidden="true">
+              {['TechCorp', 'Innovate SpA', 'Global Logistics', 'Estudio Jurídico', 'Constructora Sur', 'StartUp X'].map((brand, i) => (
+                <span key={`dup-${i}`} className="text-xl md:text-2xl font-bold text-slate-300 dark:text-slate-700">{brand}</span>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Services Section */}
         <section id="servicios" className="py-24 bg-slate-50 dark:bg-slate-950">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -121,7 +134,7 @@ export default function Home() {
             
             <div className="grid md:grid-cols-3 gap-8">
               {[
-                { title: 'Contabilidad Mensual', desc: 'Llevanza de libros contables, balances y estados de resultados con total transparencia.', icon: 'M4 19h16v2H4zm2-4h12v2H6zm0-4h12v2H6zm0-4h12v2H6z' },
+                { title: 'Contabilidad Mensual', desc: 'Libros tributarios, con total transparencia accesible 24/7 atravez de plataforma web al cierre de mes.', icon: 'M4 19h16v2H4zm2-4h12v2H6zm0-4h12v2H6zm0-4h12v2H6z' },
                 { title: 'Declaración de Impuestos', desc: 'Formulario 29, declaraciones juradas y renta anual. Cumple con el SII sin retrasos ni multas.', icon: 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6' },
                 { title: 'Remuneraciones', desc: 'Cálculo de sueldos, finiquitos, cotizaciones previsionales (Previred) y contratos laborales.', icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75' },
               ].map((s, i) => (
@@ -147,7 +160,7 @@ export default function Home() {
               
               <div className="relative z-10 max-w-xl text-white">
                 <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-                  Todo tu papeleo, en un solo lugar.
+                  Tu contabilidad, en un solo lugar.
                 </h2>
                 <p className="text-brand-100 text-lg mb-8">
                   Nuestros clientes tienen acceso a un portal exclusivo. Descarga tus balances, revisa tus liquidaciones de sueldo y comprueba el pago de tus impuestos 24/7 sin tener que mandar un solo correo.
@@ -184,10 +197,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-3 gap-8">
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded bg-brand-600 flex items-center justify-center text-white font-bold text-xl">
-                M
-              </div>
-              <span className="font-bold text-xl text-white">Contabilidad con María</span>
+              <img src="/logo.png" alt="Contabilidad con María Logo" className="h-8 w-auto brightness-0 invert" />
             </div>
             <p className="text-sm text-slate-400 max-w-xs">
               Soluciones contables, tributarias y laborales para empresas que buscan crecer de manera ordenada.
@@ -197,7 +207,7 @@ export default function Home() {
             <h4 className="text-white font-semibold mb-4">Contacto</h4>
             <ul className="space-y-2 text-sm">
               <li>📍 Oficina Central, Ciudad</li>
-              <li>📧 contacto@contabilidadconmaria.cl</li>
+              <li>📧 contabilidad@mmellado.com</li>
               <li>📞 +56 9 1234 5678</li>
             </ul>
           </div>
