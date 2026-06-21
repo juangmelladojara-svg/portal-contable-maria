@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { UploadCloud, LogOut } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -15,7 +16,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       router.push("/portal");
       return;
     }
-    
     try {
       const session = JSON.parse(sessionStr);
       if (session.role !== "admin") {
@@ -23,7 +23,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return;
       }
       setUser(session);
-    } catch (e) {
+    } catch {
       router.push("/portal");
     }
   }, [router]);
@@ -34,42 +34,48 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   if (!user) {
-    return <div className="min-h-screen flex items-center justify-center">Cargando Panel de Administración...</div>;
+    return (
+      <div className="min-h-screen grid place-items-center text-slate-500">
+        Cargando panel de administración…
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
-      <header className="bg-slate-900 border-b border-slate-800 text-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <header className="sticky top-0 z-40 bg-slate-900 border-b border-slate-800 text-white shadow-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-8 h-8 rounded bg-brand-500 flex items-center justify-center text-white font-bold shadow-sm">
-              M
-            </div>
-            <div className="h-6 w-px bg-slate-700"></div>
+            <span className="relative grid h-9 w-9 place-items-center rounded-lg bg-brand-500 shadow-sm ring-1 ring-white/10">
+              <span className="font-mono text-lg font-bold text-white">M</span>
+            </span>
+            <div className="h-6 w-px bg-slate-700" />
             <span className="font-semibold hidden sm:block">Panel de Administración</span>
           </div>
 
           <nav className="flex gap-4">
-            <Link 
+            <Link
               href="/portal/admin"
-              className={`text-sm font-medium transition-all ${
-                pathname === '/portal/admin' ? 'text-brand-400' : 'text-slate-300 hover:text-white'
+              className={`inline-flex items-center gap-1.5 text-sm font-medium transition-all ${
+                pathname === "/portal/admin" ? "text-brand-400" : "text-slate-300 hover:text-white"
               }`}
             >
+              <UploadCloud className="w-4 h-4" />
               Subir Documentos
             </Link>
           </nav>
 
-          <div className="flex items-center gap-6">
-            <div className="hidden md:flex flex-col text-right">
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex flex-col text-right leading-tight">
               <span className="text-sm font-semibold">{user.name}</span>
               <span className="text-xs text-slate-400">{user.email}</span>
             </div>
-            <button 
+            <button
               onClick={handleLogout}
-              className="text-sm text-slate-400 hover:text-white font-medium bg-slate-800 px-3 py-1.5 rounded-md transition-colors"
+              className="inline-flex items-center gap-1.5 text-sm text-slate-300 hover:text-white font-medium bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition-colors"
             >
-              Salir
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Salir</span>
             </button>
           </div>
         </div>

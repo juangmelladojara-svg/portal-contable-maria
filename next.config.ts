@@ -6,8 +6,7 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  // Opcional: ignorar errores de eslint/typescript durante build para garantizar despliegue rápido
-  eslint: { ignoreDuringBuilds: true },
+  // Opcional: ignorar errores de typescript durante build para despliegue rápido
   typescript: { ignoreBuildErrors: true }
 };
 

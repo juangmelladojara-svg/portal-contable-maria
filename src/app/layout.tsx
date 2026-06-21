@@ -15,6 +15,8 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Contabilidad con María | Servicios y Portal de Clientes",
   description: "Servicios contables, declaración de renta, remuneraciones y asesoría tributaria. Accede a tu portal de clientes.",
+  // Maqueta privada para revisión de cliente — no indexar en buscadores.
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({

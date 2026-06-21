@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { FolderOpen, BarChart3, LogOut } from "lucide-react";
+import BrandMark from "@/components/BrandMark";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -15,11 +17,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.push("/portal");
       return;
     }
-    
     try {
-      const session = JSON.parse(sessionStr);
-      setUser(session);
-    } catch (e) {
+      setUser(JSON.parse(sessionStr));
+    } catch {
       router.push("/portal");
     }
   }, [router]);
@@ -30,55 +30,61 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   if (!user) {
-    return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
+    return (
+      <div className="min-h-screen grid place-items-center text-slate-500">
+        Cargando…
+      </div>
+    );
   }
+
+  const tabs = [
+    { href: "/portal/dashboard", label: "Archivos", icon: FolderOpen },
+    { href: "/portal/dashboard/metricas", label: "KPIs Financieros", icon: BarChart3 },
+  ];
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
-      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 print:hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <header className="sticky top-0 z-40 glass border-b border-slate-200/60 dark:border-slate-800/60 print:hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Link href="/" className="w-8 h-8 rounded bg-brand-600 flex items-center justify-center text-white font-bold shadow-sm">
-              M
-            </Link>
-            <div className="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
-            <span className="font-semibold text-slate-900 dark:text-white hidden sm:block">Portal de Clientes</span>
+            <BrandMark href="/" showWordmark={false} />
+            <div className="h-6 w-px bg-slate-200 dark:bg-slate-700" />
+            <span className="font-semibold text-slate-900 dark:text-white hidden sm:block">
+              Portal de Clientes
+            </span>
           </div>
 
-          {/* Navegación de Pestañas */}
-          <nav className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-            <Link 
-              href="/portal/dashboard"
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
-                pathname === '/portal/dashboard' 
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Archivos
-            </Link>
-            <Link 
-              href="/portal/dashboard/metricas"
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
-                pathname === '/portal/dashboard/metricas' 
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              KPIs Financieros
-            </Link>
+          <nav className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+            {tabs.map((t) => {
+              const active = pathname === t.href;
+              return (
+                <Link
+                  key={t.href}
+                  href={t.href}
+                  className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 text-sm font-medium rounded-lg transition-all ${
+                    active
+                      ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  <t.icon className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t.label}</span>
+                </Link>
+              );
+            })}
           </nav>
 
-          <div className="flex items-center gap-6">
-            <div className="hidden md:flex flex-col text-right">
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex flex-col text-right leading-tight">
               <span className="text-sm font-semibold text-slate-900 dark:text-white">{user.name}</span>
               <span className="text-xs text-slate-500">{user.email}</span>
             </div>
-            <button 
+            <button
               onClick={handleLogout}
-              className="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-medium"
+              className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-medium"
             >
-              Salir
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Salir</span>
             </button>
           </div>
         </div>
