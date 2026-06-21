@@ -5,28 +5,41 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { FolderOpen, BarChart3, LogOut } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
+import { createClient } from "@/lib/supabase/client";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const supabase = createClient();
+  const [user, setUser] = useState<{ nombre: string; email: string } | null>(null);
 
   useEffect(() => {
-    const sessionStr = localStorage.getItem("maria_portal_session");
-    if (!sessionStr) {
-      router.push("/portal");
-      return;
-    }
-    try {
-      setUser(JSON.parse(sessionStr));
-    } catch {
-      router.push("/portal");
-    }
-  }, [router]);
+    const cargar = async () => {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
 
-  const handleLogout = () => {
-    localStorage.removeItem("maria_portal_session");
+      // El middleware ya redirige si no hay sesión; esto es solo para mostrar datos.
+      if (!authUser) {
+        router.push("/portal");
+        return;
+      }
+
+      const { data: perfil } = await supabase
+        .from("perfiles")
+        .select("nombre")
+        .eq("id", authUser.id)
+        .single();
+
+      setUser({ nombre: perfil?.nombre ?? authUser.email ?? "", email: authUser.email ?? "" });
+    };
+    cargar();
+  }, [router, supabase]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     router.push("/portal");
+    router.refresh();
   };
 
   if (!user) {
@@ -76,7 +89,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <div className="flex items-center gap-4">
             <div className="hidden md:flex flex-col text-right leading-tight">
-              <span className="text-sm font-semibold text-slate-900 dark:text-white">{user.name}</span>
+              <span className="text-sm font-semibold text-slate-900 dark:text-white">{user.nombre}</span>
               <span className="text-xs text-slate-500">{user.email}</span>
             </div>
             <button

@@ -1,13 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'export',
-  basePath: '/portal-contable-maria',
+  // App con servidor real (auth, API routes, Storage) — desplegada en Vercel.
+  // Ya NO usamos `output: 'export'` ni `basePath`: eso era solo para la maqueta en GitHub Pages.
   images: {
-    unoptimized: true,
+    // Permitir servir imágenes desde el bucket público de Supabase Storage.
+    remotePatterns: [
+      { protocol: "https", hostname: "*.supabase.co" },
+    ],
   },
-  // Opcional: ignorar errores de typescript durante build para despliegue rápido
-  typescript: { ignoreBuildErrors: true }
 };
 
 export default nextConfig;

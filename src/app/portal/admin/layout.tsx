@@ -4,33 +4,46 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { UploadCloud, LogOut } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
+  const supabase = createClient();
+  const [user, setUser] = useState<{ nombre: string; email: string } | null>(null);
 
   useEffect(() => {
-    const sessionStr = localStorage.getItem("maria_portal_session");
-    if (!sessionStr) {
-      router.push("/portal");
-      return;
-    }
-    try {
-      const session = JSON.parse(sessionStr);
-      if (session.role !== "admin") {
+    const cargar = async () => {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+
+      if (!authUser) {
+        router.push("/portal");
+        return;
+      }
+
+      const { data: perfil } = await supabase
+        .from("perfiles")
+        .select("nombre, rol")
+        .eq("id", authUser.id)
+        .single();
+
+      // Doble cierre de seguridad además del middleware: un no-admin no ve este panel.
+      if (perfil?.rol !== "admin") {
         router.push("/portal/dashboard");
         return;
       }
-      setUser(session);
-    } catch {
-      router.push("/portal");
-    }
-  }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("maria_portal_session");
+      setUser({ nombre: perfil?.nombre ?? authUser.email ?? "", email: authUser.email ?? "" });
+    };
+    cargar();
+  }, [router, supabase]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     router.push("/portal");
+    router.refresh();
   };
 
   if (!user) {
@@ -67,7 +80,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           <div className="flex items-center gap-4">
             <div className="hidden md:flex flex-col text-right leading-tight">
-              <span className="text-sm font-semibold">{user.name}</span>
+              <span className="text-sm font-semibold">{user.nombre}</span>
               <span className="text-xs text-slate-400">{user.email}</span>
             </div>
             <button
