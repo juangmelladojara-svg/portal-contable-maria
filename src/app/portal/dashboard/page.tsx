@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Folder, FileText, Download, ChevronRight } from "lucide-react";
+import { Folder, FileText, Download, ChevronRight, Loader2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
-interface Document {
-  id: number;
-  name: string;
-  category: string;
-  date: string;
-  size: string;
-  year: string;
-  month: string;
+interface Documento {
+  id: string;
+  nombre: string;
+  categoria: string;
+  anio: string;
+  mes: string;
+  size_bytes: number;
+  storage_path: string;
+  created_at: string;
 }
 
 const monthOrder = [
@@ -18,38 +20,47 @@ const monthOrder = [
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
 ];
 
+const formatSize = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+};
+
 export default function DashboardPage() {
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [supabase] = useState(() => createClient());
+  const [documents, setDocuments] = useState<Documento[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   // currentPath: [] = años, [year] = meses, [year, month] = archivos
   const [currentPath, setCurrentPath] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!localStorage.getItem("maria_portal_docs_v2")) {
-      const fakeDocs: Document[] = [
-        { id: 1, name: "Balance General 2025.pdf", category: "Balances", date: "2025-05-10", size: "1.2 MB", year: "2025", month: "Mayo" },
-        { id: 2, name: "F29_Marzo_2025.pdf", category: "Impuestos", date: "2025-04-15", size: "0.8 MB", year: "2025", month: "Marzo" },
-        { id: 3, name: "Liquidaciones_Marzo.zip", category: "Remuneraciones", date: "2025-04-02", size: "3.5 MB", year: "2025", month: "Marzo" },
-        { id: 4, name: "F29_Febrero_2025.pdf", category: "Impuestos", date: "2025-03-12", size: "0.8 MB", year: "2025", month: "Febrero" },
-        { id: 5, name: "Liquidaciones_Febrero.pdf", category: "Remuneraciones", date: "2025-03-05", size: "1.1 MB", year: "2025", month: "Febrero" },
-        { id: 6, name: "Balance Anual 2024.pdf", category: "Balances", date: "2024-12-31", size: "4.2 MB", year: "2024", month: "Diciembre" },
-      ];
-      localStorage.setItem("maria_portal_docs_v2", JSON.stringify(fakeDocs));
-      setDocuments(fakeDocs);
-    } else {
-      setDocuments(JSON.parse(localStorage.getItem("maria_portal_docs_v2")!));
-    }
-  }, []);
+    const cargar = async () => {
+      setLoading(true);
+      // RLS deja ver SOLO los documentos del cliente autenticado.
+      const { data } = await supabase
+        .from("documentos")
+        .select("id, nombre, categoria, anio, mes, size_bytes, storage_path, created_at")
+        .order("created_at", { ascending: false });
+      setDocuments((data as Documento[]) ?? []);
+      setLoading(false);
+    };
+    cargar();
+  }, [supabase]);
 
-  const handleDownload = (doc: Document) => {
-    const blob = new Blob([`Contenido simulado del documento ${doc.name}`], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = doc.name;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const handleDownload = async (doc: Documento) => {
+    setDownloadingId(doc.id);
+    // URL firmada temporal (60s) sobre el bucket privado.
+    const { data, error } = await supabase.storage
+      .from("documentos")
+      .createSignedUrl(doc.storage_path, 60, { download: doc.nombre });
+
+    setDownloadingId(null);
+    if (error || !data?.signedUrl) {
+      alert("No se pudo generar la descarga. Inténtalo de nuevo.");
+      return;
+    }
+    window.open(data.signedUrl, "_blank");
   };
 
   const FolderCard = ({ label, onClick }: { label: string; onClick: () => void }) => (
@@ -63,8 +74,27 @@ export default function DashboardPage() {
   );
 
   const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="glass-card rounded-2xl p-12 flex items-center justify-center gap-3 text-slate-500">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          Cargando tus documentos…
+        </div>
+      );
+    }
+
+    if (documents.length === 0) {
+      return (
+        <div className="glass-card rounded-2xl p-12 text-center">
+          <Folder className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-3" strokeWidth={1.5} />
+          <p className="text-slate-600 dark:text-slate-300 font-medium">Aún no tienes documentos disponibles.</p>
+          <p className="text-sm text-slate-400 mt-1">Cuando María suba archivos a tu carpeta, aparecerán aquí.</p>
+        </div>
+      );
+    }
+
     if (currentPath.length === 0) {
-      const years = Array.from(new Set(documents.map((d) => d.year))).sort((a, b) => b.localeCompare(a));
+      const years = Array.from(new Set(documents.map((d) => d.anio))).sort((a, b) => b.localeCompare(a));
       return (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {years.map((year) => (
@@ -76,7 +106,7 @@ export default function DashboardPage() {
 
     if (currentPath.length === 1) {
       const year = currentPath[0];
-      const months = Array.from(new Set(documents.filter((d) => d.year === year).map((d) => d.month)));
+      const months = Array.from(new Set(documents.filter((d) => d.anio === year).map((d) => d.mes)));
       months.sort((a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b));
       return (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -88,7 +118,7 @@ export default function DashboardPage() {
     }
 
     const [year, month] = currentPath;
-    const files = documents.filter((d) => d.year === year && d.month === month);
+    const files = documents.filter((d) => d.anio === year && d.mes === month);
     return (
       <div className="glass-card rounded-2xl overflow-hidden">
         <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
@@ -109,25 +139,30 @@ export default function DashboardPage() {
                       <FileText className="w-4 h-4" />
                     </span>
                     <div>
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">{doc.name}</p>
-                      <p className="text-xs text-slate-500">{doc.size}</p>
+                      <p className="text-sm font-medium text-slate-900 dark:text-white">{doc.nombre}</p>
+                      <p className="text-xs text-slate-500">{formatSize(doc.size_bytes)}</p>
                     </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-xs font-medium text-slate-700 dark:text-slate-300">
-                    {doc.category}
+                    {doc.categoria}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                  {new Date(doc.date).toLocaleDateString("es-CL")}
+                  {new Date(doc.created_at).toLocaleDateString("es-CL")}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right">
                   <button
                     onClick={() => handleDownload(doc)}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-brand-50 dark:bg-brand-900/20 px-3 py-1.5 text-sm font-medium text-brand-600 hover:text-brand-800 dark:hover:text-brand-400 transition-colors"
+                    disabled={downloadingId === doc.id}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-brand-50 dark:bg-brand-900/20 px-3 py-1.5 text-sm font-medium text-brand-600 hover:text-brand-800 dark:hover:text-brand-400 transition-colors disabled:opacity-60"
                   >
-                    <Download className="w-4 h-4" />
+                    {downloadingId === doc.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4" />
+                    )}
                     Descargar
                   </button>
                 </td>

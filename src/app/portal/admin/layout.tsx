@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { UploadCloud, LogOut } from "lucide-react";
+import { UploadCloud, LogOut, Building2, BarChart3 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const supabase = createClient();
+  // Crear el cliente UNA sola vez (si no, el useEffect entra en bucle infinito).
+  const [supabase] = useState(() => createClient());
   const [user, setUser] = useState<{ nombre: string; email: string } | null>(null);
 
   useEffect(() => {
@@ -66,16 +67,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <span className="font-semibold hidden sm:block">Panel de Administración</span>
           </div>
 
-          <nav className="flex gap-4">
-            <Link
-              href="/portal/admin"
-              className={`inline-flex items-center gap-1.5 text-sm font-medium transition-all ${
-                pathname === "/portal/admin" ? "text-brand-400" : "text-slate-300 hover:text-white"
-              }`}
-            >
-              <UploadCloud className="w-4 h-4" />
-              Subir Documentos
-            </Link>
+          <nav className="flex gap-1 sm:gap-4">
+            {[
+              { href: "/portal/admin", label: "Documentos", icon: UploadCloud },
+              { href: "/portal/admin/clientes", label: "Clientes", icon: Building2 },
+              { href: "/portal/admin/metricas", label: "Métricas", icon: BarChart3 },
+            ].map((t) => (
+              <Link
+                key={t.href}
+                href={t.href}
+                className={`inline-flex items-center gap-1.5 text-sm font-medium transition-all px-2 py-1 rounded-lg ${
+                  pathname === t.href ? "text-brand-400" : "text-slate-300 hover:text-white"
+                }`}
+              >
+                <t.icon className="w-4 h-4" />
+                <span className="hidden sm:inline">{t.label}</span>
+              </Link>
+            ))}
           </nav>
 
           <div className="flex items-center gap-4">

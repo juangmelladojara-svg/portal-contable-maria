@@ -1,17 +1,34 @@
 "use client";
 
-import { useState } from "react";
-import { Settings, Printer, ReceiptText, Clock, TrendingUp } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Settings, Printer, ReceiptText, Clock, TrendingUp, Loader2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
-// Datos financieros de prueba por mes
-const financialData = {
-  "2025-03": { ingresos: 15500000, gastos: 8200000, iva: 1387000, remuneraciones: 4500000 },
-  "2025-02": { ingresos: 12000000, gastos: 7500000, iva: 855000, remuneraciones: 4500000 },
-  "2025-01": { ingresos: 18000000, gastos: 9000000, iva: 1710000, remuneraciones: 4500000 },
+interface Metrica {
+  periodo: string; // 'YYYY-MM'
+  ingresos: number;
+  gastos: number;
+  iva: number;
+  remuneraciones: number;
+}
+
+const mesesLargo = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
+
+const etiquetaPeriodo = (periodo: string) => {
+  const [y, m] = periodo.split("-");
+  const idx = parseInt(m, 10) - 1;
+  return `${mesesLargo[idx] ?? m} ${y}`;
 };
 
 export default function MetricasPage() {
-  const [selectedPeriod, setSelectedPeriod] = useState("2025-03");
+  const [supabase] = useState(() => createClient());
+  const [metricas, setMetricas] = useState<Metrica[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedPeriod, setSelectedPeriod] = useState("");
+
   const [visibleWidgets, setVisibleWidgets] = useState({
     ingresos: true,
     gastos: true,
@@ -22,14 +39,48 @@ export default function MetricasPage() {
   });
   const [showConfig, setShowConfig] = useState(false);
 
-  const data = financialData[selectedPeriod as keyof typeof financialData];
-  const utilidad = data.ingresos - data.gastos - data.remuneraciones;
+  useEffect(() => {
+    const cargar = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("metricas_mensuales")
+        .select("periodo, ingresos, gastos, iva, remuneraciones")
+        .order("periodo", { ascending: false });
+      const lista = (data as Metrica[]) ?? [];
+      setMetricas(lista);
+      if (lista.length > 0) setSelectedPeriod(lista[0].periodo);
+      setLoading(false);
+    };
+    cargar();
+  }, [supabase]);
+
+  const data = metricas.find((m) => m.periodo === selectedPeriod);
+  const utilidad = data ? data.ingresos - data.gastos - data.remuneraciones : 0;
 
   const handlePrint = () => window.print();
   const toggleWidget = (key: keyof typeof visibleWidgets) =>
     setVisibleWidgets((prev) => ({ ...prev, [key]: !prev[key] }));
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(value);
+
+  if (loading) {
+    return (
+      <div className="glass-card rounded-2xl p-12 flex items-center justify-center gap-3 text-slate-500">
+        <Loader2 className="w-5 h-5 animate-spin" />
+        Cargando métricas…
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="glass-card rounded-2xl p-12 text-center">
+        <TrendingUp className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-3" strokeWidth={1.5} />
+        <p className="text-slate-600 dark:text-slate-300 font-medium">Aún no hay métricas financieras cargadas.</p>
+        <p className="text-sm text-slate-400 mt-1">Cuando María registre tus cifras mensuales, verás aquí tus KPIs.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -46,9 +97,9 @@ export default function MetricasPage() {
             onChange={(e) => setSelectedPeriod(e.target.value)}
             className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
           >
-            <option value="2025-03">Marzo 2025</option>
-            <option value="2025-02">Febrero 2025</option>
-            <option value="2025-01">Enero 2025</option>
+            {metricas.map((m) => (
+              <option key={m.periodo} value={m.periodo}>{etiquetaPeriodo(m.periodo)}</option>
+            ))}
           </select>
 
           <div className="relative">
@@ -93,7 +144,7 @@ export default function MetricasPage() {
       {/* Cabecera solo en PDF */}
       <div className="hidden print:block mb-8">
         <h1 className="text-3xl font-bold text-slate-900">Reporte Financiero Mensual</h1>
-        <p className="text-lg text-slate-600 mt-2">Período: {selectedPeriod}</p>
+        <p className="text-lg text-slate-600 mt-2">Período: {etiquetaPeriodo(selectedPeriod)}</p>
         <div className="h-px bg-slate-300 my-4 w-full" />
       </div>
 
@@ -114,7 +165,7 @@ export default function MetricasPage() {
             <h3 className="text-sm font-medium text-slate-500 mb-2">Gastos Operativos</h3>
             <p className="text-3xl font-bold text-slate-900 dark:text-white">{formatCurrency(data.gastos)}</p>
             <div className="mt-4 h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-amber-500" style={{ width: `${(data.gastos / data.ingresos) * 100}%` }} />
+              <div className="h-full bg-amber-500" style={{ width: `${Math.min((data.gastos / data.ingresos) * 100, 100)}%` }} />
             </div>
           </div>
         )}
@@ -124,7 +175,7 @@ export default function MetricasPage() {
             <h3 className="text-sm font-medium text-slate-500 mb-2">Remuneraciones</h3>
             <p className="text-3xl font-bold text-slate-900 dark:text-white">{formatCurrency(data.remuneraciones)}</p>
             <div className="mt-4 h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-orange-500" style={{ width: `${(data.remuneraciones / data.ingresos) * 100}%` }} />
+              <div className="h-full bg-orange-500" style={{ width: `${Math.min((data.remuneraciones / data.ingresos) * 100, 100)}%` }} />
             </div>
           </div>
         )}
@@ -143,8 +194,8 @@ export default function MetricasPage() {
         {visibleWidgets.responsabilidades && (
           <div className="card-lift glass-card p-6 rounded-2xl ring-2 ring-brand-500/20">
             <h3 className="text-sm font-medium text-slate-500 mb-2">Próximos Pagos</h3>
-            <p className="text-lg font-bold text-slate-900 dark:text-white mb-1">F29 (IVA): 20 de Abril</p>
-            <p className="text-lg font-bold text-slate-900 dark:text-white">Previred: 13 de Abril</p>
+            <p className="text-lg font-bold text-slate-900 dark:text-white mb-1">F29 (IVA): 20 de cada mes</p>
+            <p className="text-lg font-bold text-slate-900 dark:text-white">Previred: 13 de cada mes</p>
             <div className="mt-3 flex items-center gap-1.5 text-xs text-brand-600 font-medium">
               <Clock className="w-4 h-4" />
               Recordatorio activo
@@ -185,7 +236,7 @@ export default function MetricasPage() {
                   <span className="font-medium text-slate-900 dark:text-white">{formatCurrency(data.gastos + data.remuneraciones)}</span>
                 </div>
                 <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2">
-                  <div className="bg-red-400 h-2 rounded-full" style={{ width: `${((data.gastos + data.remuneraciones) / data.ingresos) * 100}%` }} />
+                  <div className="bg-red-400 h-2 rounded-full" style={{ width: `${Math.min(((data.gastos + data.remuneraciones) / data.ingresos) * 100, 100)}%` }} />
                 </div>
               </div>
               <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center">

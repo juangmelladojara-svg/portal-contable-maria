@@ -40,9 +40,9 @@ export default function PortalLogin() {
       return;
     }
 
-    // El middleware redirige al panel correcto (admin/cliente) según el rol.
-    router.push("/portal/dashboard");
+    // Vamos a /portal y el proxy redirige al panel correcto (admin/cliente) según el rol.
     router.refresh();
+    router.push("/portal");
   };
 
   const handleReset = async (e: React.FormEvent) => {

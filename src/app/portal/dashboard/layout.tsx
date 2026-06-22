@@ -10,7 +10,8 @@ import { createClient } from "@/lib/supabase/client";
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const supabase = createClient();
+  // Crear el cliente UNA sola vez (si no, el useEffect entra en bucle infinito).
+  const [supabase] = useState(() => createClient());
   const [user, setUser] = useState<{ nombre: string; email: string } | null>(null);
 
   useEffect(() => {

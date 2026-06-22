@@ -1,16 +1,25 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { UploadCloud, FileText, CheckCircle2, Save } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { UploadCloud, FileText, CheckCircle2, Save, Loader2, AlertCircle } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
-interface Document {
-  id: number;
-  name: string;
-  category: string;
-  date: string;
-  size: string;
-  year: string;
-  month: string;
+interface Cliente {
+  id: string;
+  razon_social: string;
+  rut: string;
+}
+
+interface Documento {
+  id: string;
+  nombre: string;
+  categoria: string;
+  anio: string;
+  mes: string;
+  size_bytes: number;
+  created_at: string;
+  cliente_id: string;
+  clientes?: { razon_social: string } | null;
 }
 
 const months = [
@@ -18,53 +27,118 @@ const months = [
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
 ];
 
+const formatSize = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+};
+
 export default function AdminDashboard() {
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [supabase] = useState(() => createClient());
+
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [documents, setDocuments] = useState<Documento[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(true);
+
   const [successMsg, setSuccessMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [uploading, setUploading] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
-  const [client, setClient] = useState("Empresa Demo Spa");
+  const [clienteId, setClienteId] = useState("");
   const [category, setCategory] = useState("Balances");
   const [month, setMonth] = useState("Marzo");
   const [year, setYear] = useState("2025");
-  const [fileName, setFileName] = useState("");
-  const [fileSize, setFileSize] = useState("0 KB");
+  const [file, setFile] = useState<File | null>(null);
 
+  // Cargar la lista de documentos (con el nombre de la empresa)
+  const cargarDocumentos = useCallback(async () => {
+    setLoadingDocs(true);
+    const { data } = await supabase
+      .from("documentos")
+      .select("id, nombre, categoria, anio, mes, size_bytes, created_at, cliente_id, clientes(razon_social)")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    setDocuments((data as unknown as Documento[]) ?? []);
+    setLoadingDocs(false);
+  }, [supabase]);
+
+  // Cargar clientes + documentos al montar
   useEffect(() => {
-    const docsStr = localStorage.getItem("maria_portal_docs_v2");
-    if (docsStr) setDocuments(JSON.parse(docsStr));
-  }, []);
+    const cargar = async () => {
+      const { data: cs } = await supabase
+        .from("clientes")
+        .select("id, razon_social, rut")
+        .order("razon_social");
+      const lista = (cs as Cliente[]) ?? [];
+      setClientes(lista);
+      if (lista.length > 0) setClienteId(lista[0].id);
+      await cargarDocumentos();
+    };
+    cargar();
+  }, [supabase, cargarDocumentos]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setFileName(file.name);
-      setFileSize((file.size / 1024 / 1024).toFixed(2) + " MB");
+      setFile(e.target.files[0]);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fileName) return;
+    setErrorMsg("");
+    setSuccessMsg("");
 
-    const newDoc: Document = {
-      id: Date.now(),
-      name: fileName,
-      category,
-      date: new Date().toISOString().split("T")[0],
-      size: fileSize,
-      year,
-      month,
-    };
+    if (!file) {
+      setErrorMsg("Selecciona un archivo antes de guardar.");
+      return;
+    }
+    if (!clienteId) {
+      setErrorMsg("No hay clientes disponibles. Crea uno primero en 'Clientes'.");
+      return;
+    }
 
-    const updatedDocs = [newDoc, ...documents];
-    setDocuments(updatedDocs);
-    localStorage.setItem("maria_portal_docs_v2", JSON.stringify(updatedDocs));
+    setUploading(true);
 
-    setSuccessMsg(`¡El documento "${fileName}" se subió correctamente y ya es visible para el cliente!`);
-    setFileName("");
+    // 1) Subir el archivo real a Storage en la carpeta del cliente: {cliente_id}/{timestamp}-{nombre}
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const storagePath = `${clienteId}/${Date.now()}-${safeName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("documentos")
+      .upload(storagePath, file, { cacheControl: "3600", upsert: false });
+
+    if (uploadError) {
+      setErrorMsg(`Error al subir el archivo: ${uploadError.message}`);
+      setUploading(false);
+      return;
+    }
+
+    // 2) Registrar el documento en la base de datos
+    const { error: insertError } = await supabase.from("documentos").insert({
+      cliente_id: clienteId,
+      nombre: file.name,
+      categoria: category,
+      anio: year,
+      mes: month,
+      storage_path: storagePath,
+      size_bytes: file.size,
+    });
+
+    if (insertError) {
+      // Si falla el registro, limpiamos el archivo huérfano del Storage
+      await supabase.storage.from("documentos").remove([storagePath]);
+      setErrorMsg(`Error al registrar el documento: ${insertError.message}`);
+      setUploading(false);
+      return;
+    }
+
+    setSuccessMsg(`¡"${file.name}" se subió correctamente y ya es visible para el cliente!`);
+    setFile(null);
     if (formRef.current) formRef.current.reset();
-    setTimeout(() => setSuccessMsg(""), 5000);
+    setUploading(false);
+    await cargarDocumentos();
+    setTimeout(() => setSuccessMsg(""), 6000);
   };
 
   const selectCls =
@@ -94,11 +168,22 @@ export default function AdminDashboard() {
                   <span>{successMsg}</span>
                 </div>
               )}
+              {errorMsg && (
+                <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 text-sm rounded-lg border border-red-200 dark:border-red-900">
+                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Cliente</label>
-                <select value={client} onChange={(e) => setClient(e.target.value)} className={selectCls}>
-                  <option value="Empresa Demo Spa">Empresa Demo Spa (76.123.456-7)</option>
+                <select value={clienteId} onChange={(e) => setClienteId(e.target.value)} className={selectCls}>
+                  {clientes.length === 0 && <option value="">— Sin clientes aún —</option>}
+                  {clientes.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.razon_social} ({c.rut})
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -139,21 +224,33 @@ export default function AdminDashboard() {
                 >
                   <UploadCloud className="w-9 h-9 text-slate-400" />
                   <span className="text-sm font-medium text-brand-600">Sube un archivo</span>
-                  <span className="text-xs text-slate-400">PDF o ZIP hasta 10 MB</span>
-                  {fileName && (
-                    <span className="mt-1 text-xs font-semibold text-slate-900 dark:text-white">{fileName}</span>
+                  <span className="text-xs text-slate-400">PDF o ZIP hasta 50 MB</span>
+                  {file && (
+                    <span className="mt-1 text-xs font-semibold text-slate-900 dark:text-white">
+                      {file.name} · {formatSize(file.size)}
+                    </span>
                   )}
-                  <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={handleFileChange} required />
+                  <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={handleFileChange} />
                 </label>
               </div>
 
               <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
                 <button
                   type="submit"
-                  className="btn-glow w-full inline-flex justify-center items-center gap-2 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold py-2.5 px-4 shadow-sm"
+                  disabled={uploading}
+                  className="btn-glow w-full inline-flex justify-center items-center gap-2 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold py-2.5 px-4 shadow-sm disabled:opacity-60"
                 >
-                  <Save className="w-4 h-4" />
-                  Guardar documento
+                  {uploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Subiendo…
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Guardar documento
+                    </>
+                  )}
                 </button>
               </div>
             </form>
@@ -169,33 +266,50 @@ export default function AdminDashboard() {
             </div>
 
             <div className="overflow-y-auto max-h-[600px]">
-              <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
-                <thead className="bg-slate-50/60 dark:bg-slate-950/40 sticky top-0">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Archivo</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Carpeta destino</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Fecha carga</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-                  {documents.map((doc) => (
-                    <tr key={doc.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                      <td className="px-6 py-3">
-                        <div className="flex items-center gap-3">
-                          <FileText className="w-4 h-4 text-slate-400" />
-                          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{doc.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-3 whitespace-nowrap">
-                        <span className="text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2.5 py-1 rounded-md">
-                          {doc.year} / {doc.month}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3 whitespace-nowrap text-right text-xs text-slate-500">{doc.date}</td>
+              {loadingDocs ? (
+                <div className="p-10 text-center text-sm text-slate-500">Cargando documentos…</div>
+              ) : documents.length === 0 ? (
+                <div className="p-10 text-center text-sm text-slate-500">
+                  Aún no hay documentos. Sube el primero con el formulario.
+                </div>
+              ) : (
+                <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+                  <thead className="bg-slate-50/60 dark:bg-slate-950/40 sticky top-0">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Archivo</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Cliente</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Carpeta</th>
+                      <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Fecha</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                    {documents.map((doc) => (
+                      <tr key={doc.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                        <td className="px-6 py-3">
+                          <div className="flex items-center gap-3">
+                            <FileText className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{doc.nombre}</p>
+                              <p className="text-xs text-slate-400">{doc.categoria} · {formatSize(doc.size_bytes)}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-3 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">
+                          {doc.clientes?.razon_social ?? "—"}
+                        </td>
+                        <td className="px-6 py-3 whitespace-nowrap">
+                          <span className="text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2.5 py-1 rounded-md">
+                            {doc.anio} / {doc.mes}
+                          </span>
+                        </td>
+                        <td className="px-6 py-3 whitespace-nowrap text-right text-xs text-slate-500">
+                          {new Date(doc.created_at).toLocaleDateString("es-CL")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </div>
