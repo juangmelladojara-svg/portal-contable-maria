@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface BrandMarkProps {
   /** Muestra el logo/wordmark completo (navbar, login, footer) */
@@ -33,8 +33,8 @@ function WordmarkFallback({ light }: { light: boolean }) {
 
 /**
  * Marca "Contabilidad con María".
- * - Con wordmark: usa el logo oficial /logo.png (cae al tipográfico si falta).
- * - Compacto: monograma con "M" script dorada.
+ * Prueba /logo.png en segundo plano; si carga, lo usa; si no, muestra el
+ * respaldo tipográfico (nunca aparece una imagen rota).
  */
 export default function BrandMark({
   showWordmark = true,
@@ -42,18 +42,23 @@ export default function BrandMark({
   href,
   className = "",
 }: BrandMarkProps) {
-  const [logoOk, setLogoOk] = useState(true);
+  const [logoOk, setLogoOk] = useState(false);
+
+  useEffect(() => {
+    if (!showWordmark) return;
+    const img = new window.Image();
+    img.onload = () => setLogoOk(true);
+    img.src = "/logo.png";
+  }, [showWordmark]);
 
   let content: React.ReactNode;
 
   if (showWordmark) {
     content = logoOk ? (
-      // Logo oficial. eslint-disable-next-line @next/next/no-img-element
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src="/logo.png"
         alt="Contabilidad con María"
-        onError={() => setLogoOk(false)}
         className={`h-11 sm:h-12 w-auto object-contain ${light ? "brightness-0 invert" : ""} ${className}`}
       />
     ) : (

@@ -70,7 +70,14 @@ const remDocs = [
 
 /** Logo de cliente con respaldo al nombre si aún no existe el archivo /clientes/<file>.png */
 function ClientLogo({ c }: { c: { name: string; file: string } }) {
-  const [ok, setOk] = useState(true);
+  const [ok, setOk] = useState(false);
+
+  useEffect(() => {
+    const img = new window.Image();
+    img.onload = () => setOk(true);
+    img.src = `/clientes/${c.file}.png`;
+  }, [c.file]);
+
   if (!ok) {
     return (
       <span className="text-lg md:text-xl font-bold text-slate-300 dark:text-slate-700 whitespace-nowrap shrink-0">
@@ -84,7 +91,6 @@ function ClientLogo({ c }: { c: { name: string; file: string } }) {
       src={`/clientes/${c.file}.png`}
       alt={c.name}
       title={c.name}
-      onError={() => setOk(false)}
       className="h-10 md:h-12 w-auto object-contain grayscale opacity-60 hover:opacity-100 hover:grayscale-0 transition duration-300 shrink-0"
     />
   );
