@@ -1,19 +1,40 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 
 interface BrandMarkProps {
-  /** Muestra el wordmark "Contabilidad con María" junto al monograma */
+  /** Muestra el logo/wordmark completo (navbar, login, footer) */
   showWordmark?: boolean;
-  /** Variante para fondos oscuros (texto claro) */
+  /** Variante para fondos oscuros (logo en blanco) */
   light?: boolean;
-  /** Envuelve la marca en un <Link href="/"> */
+  /** Envuelve la marca en un <Link href="..."> */
   href?: string;
   className?: string;
 }
 
+/** Respaldo tipográfico si aún no existe /logo.png */
+function WordmarkFallback({ light }: { light: boolean }) {
+  return (
+    <span className="inline-flex flex-col items-center leading-none">
+      <span
+        className={`font-display text-[15px] sm:text-base font-bold uppercase tracking-[0.14em] ${
+          light ? "text-white" : "text-brand-600 dark:text-white"
+        }`}
+      >
+        Contabilidad
+      </span>
+      <span className="font-script text-2xl sm:text-[26px] leading-[0.7] -mt-0.5 text-accent-500">
+        con María
+      </span>
+    </span>
+  );
+}
+
 /**
- * Marca de "Contabilidad con María".
- * Monograma cuadrado azul con "M" dorada — sin dependencia de assets externos
- * (evita el logo.png roto y los problemas de basePath en export estático).
+ * Marca "Contabilidad con María".
+ * - Con wordmark: usa el logo oficial /logo.png (cae al tipográfico si falta).
+ * - Compacto: monograma con "M" script dorada.
  */
 export default function BrandMark({
   showWordmark = true,
@@ -21,32 +42,39 @@ export default function BrandMark({
   href,
   className = "",
 }: BrandMarkProps) {
-  const content = (
-    <span className={`inline-flex items-center gap-2.5 ${className}`}>
-      <span className="relative grid h-9 w-9 place-items-center rounded-lg bg-brand-600 shadow-sm ring-1 ring-white/10">
-        <span className="font-mono text-lg font-bold text-accent-500">M</span>
+  const [logoOk, setLogoOk] = useState(true);
+
+  let content: React.ReactNode;
+
+  if (showWordmark) {
+    content = logoOk ? (
+      // Logo oficial. eslint-disable-next-line @next/next/no-img-element
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src="/logo.png"
+        alt="Contabilidad con María"
+        onError={() => setLogoOk(false)}
+        className={`h-11 sm:h-12 w-auto object-contain ${light ? "brightness-0 invert" : ""} ${className}`}
+      />
+    ) : (
+      <span className={className}>
+        <WordmarkFallback light={light} />
+      </span>
+    );
+  } else {
+    content = (
+      <span
+        className={`relative grid h-9 w-9 place-items-center rounded-lg bg-brand-600 shadow-sm ring-1 ring-white/10 ${className}`}
+      >
+        <span className="font-script text-2xl leading-none text-accent-400 pb-1">M</span>
         <span className="absolute inset-0 rounded-lg bg-gradient-to-br from-white/15 to-transparent" />
       </span>
-      {showWordmark && (
-        <span className="flex flex-col leading-none">
-          <span
-            className={`text-[13px] font-bold tracking-tight ${
-              light ? "text-white" : "text-slate-900 dark:text-white"
-            }`}
-          >
-            Contabilidad
-          </span>
-          <span className="text-[11px] font-medium tracking-wide text-accent-500">
-            con María
-          </span>
-        </span>
-      )}
-    </span>
-  );
+    );
+  }
 
   if (href) {
     return (
-      <Link href={href} aria-label="Contabilidad con María — Inicio" className="inline-flex">
+      <Link href={href} aria-label="Contabilidad con María — Inicio" className="inline-flex items-center">
         {content}
       </Link>
     );

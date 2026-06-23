@@ -56,6 +56,7 @@ export default function MetricasPage() {
 
   const data = metricas.find((m) => m.periodo === selectedPeriod);
   const utilidad = data ? data.ingresos - data.gastos - data.remuneraciones : 0;
+  const margen = data && data.ingresos > 0 ? (utilidad / data.ingresos) * 100 : 0;
 
   const handlePrint = () => window.print();
   const toggleWidget = (key: keyof typeof visibleWidgets) =>
@@ -243,7 +244,7 @@ export default function MetricasPage() {
                 <span className="font-bold text-slate-900 dark:text-white">Margen Operacional</span>
                 <span className="inline-flex items-center gap-1.5 font-bold text-brand-600">
                   <TrendingUp className="w-4 h-4" />
-                  {((utilidad / data.ingresos) * 100).toFixed(1)}%
+                  {margen.toFixed(1)}%
                 </span>
               </div>
             </div>

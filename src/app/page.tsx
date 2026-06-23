@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import {
@@ -13,13 +14,13 @@ import {
   Users,
   ShieldCheck,
   FileText,
+  FileCheck2,
   Folder,
-  Download,
+  Check,
   CheckCircle2,
   TrendingUp,
   Landmark,
   Building2,
-  FileCheck2,
   Server,
   MapPin,
   Mail,
@@ -27,18 +28,70 @@ import {
 } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
 
-const brands = [
-  "TechCorp",
-  "Innovate SpA",
-  "Global Logistics",
-  "Estudio Jurídico",
-  "Constructora Sur",
-  "StartUp X",
+// Logos reales de clientes — guardar cada archivo en public/clientes/<file>.png
+const clientes = [
+  { name: "Paola Zamorán · Fonoaudiología", file: "paola-zamoran" },
+  { name: "Dilo Conmigo", file: "dilo-conmigo" },
+  { name: "Hostal Beraca", file: "hostal-beraca" },
+  { name: "Panda", file: "panda" },
+  { name: "The Chicken Grill", file: "chicken-grill" },
+  { name: "Bake House", file: "bake-house" },
+  { name: "Survial", file: "survial" },
+  { name: "MediFilter", file: "medifilter" },
+  { name: "NeuroStep", file: "neurostep" },
+  { name: "Coliseo · Constructora Bizama", file: "coliseo" },
 ];
+
+// Carrusel del portal — pantallazos reales del portal (en public/portal/)
+const portalShots = [
+  { src: "/portal/02-dashboard.png", label: "Tus archivos por año y mes" },
+  { src: "/portal/03-metricas.png", label: "KPIs financieros" },
+  { src: "/portal/04-admin-subir.png", label: "Carga de documentos" },
+  { src: "/portal/06-admin-metricas.png", label: "Métricas mensuales" },
+  { src: "/portal/05-admin-clientes.png", label: "Gestión de clientes" },
+  { src: "/portal/01-login.png", label: "Acceso seguro 24/7" },
+];
+
+// Gráfico de 12 meses (ingresos mensuales, en %)
+const ingresos12 = [42, 50, 46, 58, 54, 64, 60, 71, 66, 78, 74, 88];
+const mesesIni = ["E", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
+
+// Checklist de impuestos con auto-check
+const impuestos = ["F29", "Ingresos", "Egresos", "Balance general", "Formulario 22", "Libros contables"];
+
+// Documentos de remuneraciones
+const remDocs = [
+  { label: "Liquidaciones de sueldo", icon: ReceiptText },
+  { label: "Previred", icon: Building2 },
+  { label: "Comprobantes de vacaciones", icon: CalendarCheck },
+  { label: "Contrato de trabajo", icon: FileText },
+  { label: "Finiquitos", icon: FileCheck2 },
+];
+
+/** Logo de cliente con respaldo al nombre si aún no existe el archivo /clientes/<file>.png */
+function ClientLogo({ c }: { c: { name: string; file: string } }) {
+  const [ok, setOk] = useState(true);
+  if (!ok) {
+    return (
+      <span className="text-lg md:text-xl font-bold text-slate-300 dark:text-slate-700 whitespace-nowrap shrink-0">
+        {c.name.split(" · ")[0]}
+      </span>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`/clientes/${c.file}.png`}
+      alt={c.name}
+      title={c.name}
+      onError={() => setOk(false)}
+      className="h-10 md:h-12 w-auto object-contain grayscale opacity-60 hover:opacity-100 hover:grayscale-0 transition duration-300 shrink-0"
+    />
+  );
+}
 
 export default function Home() {
   const root = useRef<HTMLDivElement>(null);
-  const mockup = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
@@ -54,26 +107,6 @@ export default function Home() {
         delay: 0.1,
       });
 
-      // Mockup del dashboard: inclinación 3D que se endereza al hacer scroll
-      if (mockup.current) {
-        gsap.fromTo(
-          mockup.current,
-          { rotateX: 22, y: 60, opacity: 0 },
-          {
-            rotateX: 0,
-            y: 0,
-            opacity: 1,
-            ease: "power3.out",
-            scrollTrigger: {
-              trigger: mockup.current,
-              start: "top 90%",
-              end: "top 45%",
-              scrub: 1,
-            },
-          }
-        );
-      }
-
       // Reveal genérico por sección
       gsap.utils.toArray<HTMLElement>("[data-reveal]").forEach((el) => {
         gsap.from(el, {
@@ -85,34 +118,35 @@ export default function Home() {
         });
       });
 
-      // Micro-interacción: barras que crecen
+      // Gráfico de 12 meses: barras que crecen
       gsap.from(".bento-bar", {
         scaleY: 0,
         transformOrigin: "bottom",
         duration: 0.7,
         ease: "power3.out",
-        stagger: 0.08,
-        scrollTrigger: { trigger: ".bento-bars", start: "top 80%" },
+        stagger: 0.05,
+        scrollTrigger: { trigger: ".bento-bars", start: "top 85%" },
       });
 
-      // Micro-interacción: barra de progreso F29 llenándose
-      gsap.fromTo(
-        ".bento-progress",
-        { width: "0%" },
-        {
-          width: "100%",
-          duration: 1.4,
-          ease: "power2.out",
-          scrollTrigger: { trigger: ".bento-progress", start: "top 85%" },
-        }
-      );
-
-      // Micro-interacción: toggle de remuneraciones que se activa
-      const tl = gsap.timeline({
-        scrollTrigger: { trigger: ".bento-toggle", start: "top 80%" },
+      // Impuestos: las casillas se auto-marcan en secuencia
+      gsap.from(".tax-check-icon", {
+        scale: 0,
+        opacity: 0,
+        duration: 0.4,
+        ease: "back.out(2)",
+        stagger: 0.18,
+        scrollTrigger: { trigger: ".tax-list", start: "top 85%" },
       });
-      tl.to(".bento-toggle", { backgroundColor: "#1c4173", duration: 0.4, ease: "power2.out" })
-        .to(".bento-knob", { x: 22, duration: 0.4, ease: "power2.out" }, "<");
+
+      // Remuneraciones: documentos que entran escalonados
+      gsap.from(".remun-list > li", {
+        y: 14,
+        opacity: 0,
+        duration: 0.5,
+        ease: "power3.out",
+        stagger: 0.1,
+        scrollTrigger: { trigger: ".remun-list", start: "top 85%" },
+      });
 
       // Integraciones: flujo de datos por las líneas SVG
       gsap.to(".flow-line", {
@@ -160,117 +194,79 @@ export default function Home() {
       </header>
 
       <main className="flex-grow pt-16">
-        {/* ============== 2. HERO ============== */}
-        <section className="relative overflow-hidden pt-20 pb-24">
+        {/* ============== 2. HERO (editorial asimétrico) ============== */}
+        <section className="relative overflow-hidden bg-[#faf9f7] dark:bg-slate-950 pt-14 pb-16 lg:pt-24 lg:pb-24">
           <div className="absolute inset-0 -z-10 grid-bg" aria-hidden />
-          <div className="absolute inset-x-0 top-0 -z-10 h-[520px] glow-brand" aria-hidden />
+          <div className="absolute right-[-10%] top-[-5%] -z-10 h-[620px] w-[60%] glow-brand" aria-hidden />
 
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <span className="hero-reveal inline-flex items-center gap-2 rounded-full border border-brand-200 dark:border-brand-800 bg-brand-50/70 dark:bg-brand-900/20 px-4 py-1.5 text-xs font-semibold text-brand-700 dark:text-brand-300 mb-6">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse-dot" />
-              Portal de clientes 24/7 · SII y Previred al día
-            </span>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+            {/* Columna de texto */}
+            <div className="lg:col-span-7 xl:col-span-6">
+              <h1 className="hero-reveal font-display text-5xl sm:text-6xl xl:text-7xl font-semibold tracking-tight text-slate-900 dark:text-white leading-[1.02] mb-6">
+                Tu contabilidad
+                <br />
+                en <span className="underline-gold">orden</span>, sin estrés.
+              </h1>
 
-            <h1 className="hero-reveal text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.05] mb-6">
-              Tu contabilidad en orden,
-              <br className="hidden sm:block" />{" "}
-              <span className="text-brand-600">sin estrés.</span>
-            </h1>
+              <p className="hero-reveal max-w-xl text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-8">
+                Contabilidad, remuneraciones y asesoría tributaria para pymes. Más un
+                portal donde descargas balances, liquidaciones e impuestos al instante
+                — sin enviar un solo correo.
+              </p>
 
-            <p className="hero-reveal mx-auto max-w-2xl text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-9">
-              Contabilidad, remuneraciones y asesoría tributaria para pymes. Y un
-              portal donde descargas tus balances, liquidaciones e impuestos al
-              instante, sin mandar un solo correo.
-            </p>
+              <div className="hero-reveal flex flex-wrap gap-4">
+                <a
+                  href="#contacto"
+                  className="btn-glow inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-base font-semibold py-3.5 px-7 rounded-xl"
+                >
+                  <CalendarCheck className="w-5 h-5" />
+                  Agenda una asesoría
+                </a>
+                <Link
+                  href="/portal"
+                  className="inline-flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-white py-3.5 px-3 group"
+                >
+                  Conoce el portal
+                  <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </div>
 
-            <div className="hero-reveal flex flex-wrap justify-center gap-4">
-              <a
-                href="#contacto"
-                className="btn-glow inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-base font-semibold py-3.5 px-7 rounded-xl"
-              >
-                <CalendarCheck className="w-5 h-5" />
-                Agenda una asesoría
-              </a>
-              <Link
-                href="/portal"
-                className="card-lift inline-flex items-center gap-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 text-base font-semibold py-3.5 px-7 rounded-xl"
-              >
-                Conoce el portal
-                <ArrowRight className="w-5 h-5" />
-              </Link>
+              {/* Stat strip editorial */}
+              <div className="hero-reveal mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 text-sm">
+                {[
+                  { n: "+50", l: "pymes asesoradas" },
+                  { n: "15", l: "años de experiencia" },
+                  { n: "100%", l: "al día con el SII" },
+                ].map((s, i) => (
+                  <div key={s.l} className="flex items-center gap-8">
+                    {i > 0 && <span className="hidden sm:block h-8 w-px bg-slate-200 dark:bg-slate-800" />}
+                    <div>
+                      <span className="font-display text-2xl font-semibold text-slate-900 dark:text-white">{s.n}</span>
+                      <span className="ml-2 text-slate-500 dark:text-slate-400">{s.l}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Mockup del dashboard (producto real) con tilt 3D */}
-          <div
-            className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-16"
-            style={{ perspective: "1400px" }}
-          >
-            <div
-              ref={mockup}
-              className="relative rounded-2xl glass-card shadow-2xl overflow-hidden"
-              style={{ transformStyle: "preserve-3d" }}
-            >
-              {/* barra superior */}
-              <div className="h-11 flex items-center gap-2 px-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/50">
-                <span className="w-3 h-3 rounded-full bg-red-400" />
-                <span className="w-3 h-3 rounded-full bg-amber-400" />
-                <span className="w-3 h-3 rounded-full bg-green-400" />
-                <span className="ml-3 text-xs font-medium text-slate-400">
-                  portal.contabilidadconmaria.cl / dashboard
-                </span>
+            {/* Columna de imagen (corporativa) */}
+            <div className="hero-reveal lg:col-span-5 xl:col-span-6 relative">
+              <div className="relative w-full max-w-md mx-auto lg:max-w-none aspect-[4/5] rounded-[1.75rem] overflow-hidden shadow-2xl ring-1 ring-black/5">
+                {/* PLACEHOLDER corporativo: reemplazar por imagen propia */}
+                <Image
+                  src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=900&q=85"
+                  alt="Oficina de Contabilidad con María"
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 45vw"
+                  className="object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-brand-900/30 via-transparent to-transparent" />
               </div>
 
-              <div className="grid sm:grid-cols-3 gap-4 p-5 bg-slate-50/40 dark:bg-slate-900/40">
-                {/* KPI cards */}
-                <div className="sm:col-span-3 grid grid-cols-3 gap-4">
-                  {[
-                    { label: "Ingresos", value: "$15.5M", icon: TrendingUp, tone: "text-green-600" },
-                    { label: "IVA del mes", value: "$1.38M", icon: ReceiptText, tone: "text-brand-600" },
-                    { label: "F29", value: "Declarado", icon: CheckCircle2, tone: "text-green-600" },
-                  ].map((kpi) => (
-                    <div
-                      key={kpi.label}
-                      className="rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-slate-500">{kpi.label}</span>
-                        <kpi.icon className={`w-4 h-4 ${kpi.tone}`} />
-                      </div>
-                      <p className="mt-2 text-lg font-bold text-slate-900 dark:text-white">
-                        {kpi.value}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* lista de documentos */}
-                <div className="sm:col-span-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800">
-                  {[
-                    "Balance General 2025.pdf",
-                    "F29_Marzo_2025.pdf",
-                    "Liquidaciones_Abril.zip",
-                  ].map((doc) => (
-                    <div key={doc} className="flex items-center justify-between px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <span className="grid place-items-center w-8 h-8 rounded-lg bg-brand-50 dark:bg-brand-900/30 text-brand-600">
-                          <FileText className="w-4 h-4" />
-                        </span>
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                          {doc}
-                        </span>
-                      </div>
-                      <span className="text-brand-600">
-                        <Download className="w-4 h-4" />
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* badge flotante */}
-              <div className="absolute -bottom-5 -left-3 sm:-left-6 glass-card rounded-xl px-4 py-3 flex items-center gap-3 animate-float">
-                <span className="grid place-items-center w-9 h-9 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600">
+              {/* KPI flotante sobre la imagen */}
+              <div className="absolute -bottom-5 -left-2 sm:-left-5 glass-card rounded-2xl px-4 py-3 flex items-center gap-3 animate-float shadow-xl">
+                <span className="grid place-items-center w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600">
                   <CheckCircle2 className="w-5 h-5" />
                 </span>
                 <div>
@@ -278,6 +274,9 @@ export default function Home() {
                   <p className="text-xs text-slate-500">Periodo al día</p>
                 </div>
               </div>
+
+              {/* Acento dorado tras la imagen */}
+              <div className="absolute -top-4 -right-4 -z-10 w-28 h-28 rounded-2xl bg-accent-500/20" aria-hidden />
             </div>
           </div>
         </section>
@@ -288,20 +287,65 @@ export default function Home() {
             Empresas que confían su contabilidad a María
           </p>
           <div className="relative flex overflow-x-hidden">
-            <div className="flex items-center gap-16 md:gap-24 px-8 min-w-max animate-marquee whitespace-nowrap">
-              {brands.map((b, i) => (
-                <span key={i} className="text-xl md:text-2xl font-bold text-slate-300 dark:text-slate-700 grayscale opacity-50">
-                  {b}
-                </span>
-              ))}
-            </div>
-            <div className="absolute top-0 flex items-center gap-16 md:gap-24 px-8 min-w-max animate-marquee2 whitespace-nowrap" aria-hidden>
-              {brands.map((b, i) => (
-                <span key={`dup-${i}`} className="text-xl md:text-2xl font-bold text-slate-300 dark:text-slate-700 grayscale opacity-50">
-                  {b}
-                </span>
-              ))}
-            </div>
+            {[0, 1].map((track) => (
+              <div
+                key={track}
+                aria-hidden={track === 1}
+                className={`flex items-center gap-12 md:gap-20 px-6 min-w-max ${track === 0 ? "animate-marquee" : "absolute top-0 left-0 animate-marquee2"}`}
+              >
+                {clientes.map((c, i) => (
+                  <ClientLogo key={`${track}-${i}`} c={c} />
+                ))}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ============== 3b. PORTAL — carrusel de imágenes reales ============== */}
+        <section className="py-20 lg:py-24 bg-[#faf9f7] dark:bg-slate-950 overflow-hidden">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-12">
+            <span data-reveal className="inline-block text-xs font-semibold uppercase tracking-[0.18em] text-accent-600 mb-3">
+              El portal
+            </span>
+            <h2 data-reveal className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-slate-900 dark:text-white">
+              Toda tu información, en un solo lugar
+            </h2>
+          </div>
+
+          {/* Carrusel infinito (dos pistas duplicadas para loop continuo) */}
+          <div
+            className="relative flex"
+            style={{
+              maskImage: "linear-gradient(to right, transparent, #000 8%, #000 92%, transparent)",
+              WebkitMaskImage: "linear-gradient(to right, transparent, #000 8%, #000 92%, transparent)",
+            }}
+          >
+            {[0, 1].map((track) => (
+              <div
+                key={track}
+                aria-hidden={track === 1}
+                className={`flex items-center gap-5 px-2.5 min-w-max ${track === 0 ? "animate-marquee" : "absolute top-0 left-0 animate-marquee2"}`}
+              >
+                {portalShots.map((shot, i) => (
+                  <figure
+                    key={`${track}-${i}`}
+                    className="relative w-72 sm:w-80 aspect-[16/10] rounded-2xl overflow-hidden shadow-lg ring-1 ring-black/5 shrink-0"
+                  >
+                    <Image
+                      src={shot.src}
+                      alt={shot.label}
+                      fill
+                      sizes="320px"
+                      className="object-cover object-top"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-brand-900/70 via-brand-900/10 to-transparent" />
+                    <figcaption className="absolute bottom-3 left-4 text-sm font-semibold text-white drop-shadow">
+                      {shot.label}
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+            ))}
           </div>
         </section>
 
@@ -309,7 +353,7 @@ export default function Home() {
         <section id="servicios" className="py-24 bg-slate-50 dark:bg-slate-950">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div data-reveal className="text-center max-w-2xl mx-auto mb-14">
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-4">
+              <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-slate-900 dark:text-white mb-4">
                 Todo tu back-office contable, resuelto
               </h2>
               <p className="text-lg text-slate-600 dark:text-slate-400">
@@ -318,65 +362,88 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {/* A — Contabilidad mensual (span 2) con barras */}
+              {/* A — Contabilidad mensual (span 2) con gráfico de 12 meses */}
               <article data-reveal className="card-lift md:col-span-2 glass-card rounded-2xl p-7 flex flex-col">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <span className="grid place-items-center w-11 h-11 rounded-xl bg-brand-50 dark:bg-brand-900/20 text-brand-600 mb-4">
-                      <Calculator className="w-5 h-5" />
-                    </span>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">Contabilidad mensual</h3>
-                    <p className="text-slate-600 dark:text-slate-400 mt-1 max-w-sm">
-                      Libros tributarios al cierre de cada mes, con total transparencia y acceso 24/7.
-                    </p>
-                  </div>
+                <div className="mb-4">
+                  <span className="grid place-items-center w-11 h-11 rounded-xl bg-brand-50 dark:bg-brand-900/20 text-brand-600 mb-4">
+                    <Calculator className="w-5 h-5" />
+                  </span>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">Contabilidad mensual</h3>
+                  <p className="text-slate-600 dark:text-slate-400 mt-1 max-w-sm">
+                    Libros tributarios al cierre de cada mes, con total transparencia y acceso 24/7.
+                  </p>
                 </div>
-                <div className="bento-bars mt-auto flex items-end gap-2 h-24 pt-4">
-                  {[40, 65, 50, 80, 60, 95, 72].map((h, i) => (
-                    <div
-                      key={i}
-                      className="bento-bar flex-1 rounded-t-md bg-gradient-to-t from-brand-600 to-brand-400"
-                      style={{ height: `${h}%` }}
-                    />
-                  ))}
+
+                <div className="mt-auto pt-4">
+                  <div className="flex items-center justify-between text-xs font-medium text-slate-500 mb-3">
+                    <span>Ingresos mensuales · 2025</span>
+                    <span className="inline-flex items-center gap-1 text-green-600">
+                      <TrendingUp className="w-3.5 h-3.5" /> +18% anual
+                    </span>
+                  </div>
+                  <div className="bento-bars flex items-end gap-1.5 sm:gap-2 h-28">
+                    {ingresos12.map((h, i) => (
+                      <div
+                        key={i}
+                        className={`bento-bar flex-1 rounded-t-md ${
+                          i === ingresos12.length - 1
+                            ? "bg-gradient-to-t from-accent-600 to-accent-400"
+                            : "bg-gradient-to-t from-brand-600 to-brand-400"
+                        }`}
+                        style={{ height: `${h}%` }}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex justify-between gap-1.5 sm:gap-2 mt-2">
+                    {mesesIni.map((m, i) => (
+                      <span key={i} className="flex-1 text-center text-[10px] text-slate-400">{m}</span>
+                    ))}
+                  </div>
                 </div>
               </article>
 
-              {/* B — Impuestos con progreso */}
+              {/* B — Impuestos con checklist auto-check */}
               <article data-reveal className="card-lift glass-card rounded-2xl p-7 flex flex-col">
                 <span className="grid place-items-center w-11 h-11 rounded-xl bg-brand-50 dark:bg-brand-900/20 text-brand-600 mb-4">
                   <ReceiptText className="w-5 h-5" />
                 </span>
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white">Impuestos al día</h3>
                 <p className="text-slate-600 dark:text-slate-400 mt-1">
-                  F29, declaraciones juradas y renta anual. Sin atrasos ni multas.
+                  Declaramos y cumplimos cada obligación, sin atrasos ni multas.
                 </p>
-                <div className="mt-auto pt-6">
-                  <div className="flex justify-between text-xs font-medium text-slate-500 mb-2">
-                    <span>F29 Marzo</span>
-                    <span className="text-green-600">100%</span>
-                  </div>
-                  <div className="h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                    <div className="bento-progress h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-600" style={{ width: "100%" }} />
-                  </div>
-                </div>
+                <ul className="tax-list mt-auto pt-5 space-y-2.5">
+                  {impuestos.map((item) => (
+                    <li key={item} className="flex items-center gap-2.5 text-sm">
+                      <span className="tax-check-icon grid place-items-center w-5 h-5 rounded-full bg-green-500 text-white shadow-sm">
+                        <Check className="w-3 h-3" strokeWidth={3} />
+                      </span>
+                      <span className="text-slate-600 dark:text-slate-300">{item}</span>
+                    </li>
+                  ))}
+                </ul>
               </article>
 
-              {/* C — Remuneraciones con toggle */}
+              {/* C — Remuneraciones con lista de documentos */}
               <article data-reveal className="card-lift glass-card rounded-2xl p-7 flex flex-col">
                 <span className="grid place-items-center w-11 h-11 rounded-xl bg-brand-50 dark:bg-brand-900/20 text-brand-600 mb-4">
                   <Users className="w-5 h-5" />
                 </span>
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white">Remuneraciones</h3>
                 <p className="text-slate-600 dark:text-slate-400 mt-1">
-                  Sueldos, finiquitos, Previred y contratos laborales.
+                  Todo el ciclo laboral de tu equipo, documentado y disponible.
                 </p>
-                <div className="mt-auto pt-6 flex items-center justify-between">
-                  <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Previred automático</span>
-                  <span className="bento-toggle relative w-12 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center px-1">
-                    <span className="bento-knob w-5 h-5 rounded-full bg-white shadow" />
-                  </span>
-                </div>
+                <ul className="remun-list mt-auto pt-5 space-y-2">
+                  {remDocs.map((d) => (
+                    <li
+                      key={d.label}
+                      className="flex items-center gap-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 px-3 py-2"
+                    >
+                      <d.icon className="w-4 h-4 text-brand-500 flex-shrink-0" />
+                      <span className="text-sm text-slate-700 dark:text-slate-200">{d.label}</span>
+                      <Check className="w-4 h-4 text-green-500 ml-auto flex-shrink-0" strokeWidth={3} />
+                    </li>
+                  ))}
+                </ul>
               </article>
 
               {/* D — Portal (span 2) */}
@@ -407,10 +474,13 @@ export default function Home() {
         </section>
 
         {/* ============== 5. INTEGRACIONES ============== */}
-        <section id="integraciones" className="py-24 overflow-hidden">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section id="integraciones" className="py-24 bg-white dark:bg-slate-950">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div data-reveal className="text-center max-w-2xl mx-auto mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-4">
+              <span className="inline-block text-xs font-semibold uppercase tracking-[0.18em] text-accent-600 mb-3">
+                Integraciones
+              </span>
+              <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-slate-900 dark:text-white mb-4">
                 Conectada con todo el ecosistema tributario
               </h2>
               <p className="text-lg text-slate-600 dark:text-slate-400">
@@ -418,61 +488,70 @@ export default function Home() {
               </p>
             </div>
 
-            <div data-reveal className="relative max-w-4xl mx-auto">
-              <svg viewBox="0 0 800 240" className="w-full h-auto" role="img" aria-label="Diagrama de integraciones">
+            <div data-reveal className="relative grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center gap-8 md:gap-6">
+              {/* Conectores animados (solo escritorio) */}
+              <svg
+                className="hidden md:block absolute inset-0 w-full h-full -z-0 pointer-events-none"
+                preserveAspectRatio="none"
+                viewBox="0 0 1000 100"
+                aria-hidden
+              >
                 <defs>
                   <linearGradient id="flow" x1="0" y1="0" x2="1" y2="0">
                     <stop offset="0%" stopColor="#7eb0d5" />
                     <stop offset="100%" stopColor="#1c4173" />
                   </linearGradient>
                 </defs>
-                {/* líneas de flujo */}
-                {[40, 100, 140, 200].map((y, i) => (
-                  <path
-                    key={i}
-                    className="flow-line"
-                    d={`M 180 ${y} C 320 ${y}, 360 120, 400 120`}
-                    fill="none"
-                    stroke="url(#flow)"
-                    strokeWidth="2.5"
-                    strokeDasharray="6 8"
-                  />
-                ))}
-                <path className="flow-line" d="M 400 120 C 480 120, 540 120, 620 120" fill="none" stroke="url(#flow)" strokeWidth="3" strokeDasharray="6 8" />
+                <line className="flow-line" x1="300" y1="50" x2="470" y2="50" stroke="url(#flow)" strokeWidth="2.5" strokeDasharray="6 8" />
+                <line className="flow-line" x1="530" y1="50" x2="700" y2="50" stroke="url(#flow)" strokeWidth="2.5" strokeDasharray="6 8" />
               </svg>
 
-              {/* nodos */}
-              <div className="absolute inset-0">
-                <div className="absolute left-0 top-0 h-full flex flex-col justify-between py-2">
-                  {[
-                    { icon: Landmark, label: "SII" },
-                    { icon: Building2, label: "Previred" },
-                    { icon: FileCheck2, label: "DTE / Boletas" },
-                    { icon: Server, label: "Bancos" },
-                  ].map((n) => (
-                    <div key={n.label} className="flex items-center gap-2.5">
-                      <span className="grid place-items-center w-11 h-11 rounded-xl glass-card text-brand-600">
-                        <n.icon className="w-5 h-5" />
-                      </span>
-                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{n.label}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* nodo central */}
-                <div className="absolute left-[44%] top-1/2 -translate-x-1/2 -translate-y-1/2">
-                  <div className="grid place-items-center w-16 h-16 rounded-2xl bg-brand-600 text-white shadow-xl ring-4 ring-brand-100 dark:ring-brand-900/40">
-                    <Calculator className="w-7 h-7" />
+              {/* Fuentes */}
+              <div className="space-y-3">
+                {[
+                  { icon: Landmark, label: "SII" },
+                  { icon: Building2, label: "Previred" },
+                  { icon: FileCheck2, label: "DTE / Boletas" },
+                  { icon: Server, label: "Bancos" },
+                ].map((n) => (
+                  <div key={n.label} className="flex items-center gap-3 rounded-xl glass-card px-4 py-3 shadow-sm">
+                    <span className="grid place-items-center w-10 h-10 rounded-lg bg-brand-50 dark:bg-brand-900/20 text-brand-600">
+                      <n.icon className="w-5 h-5" />
+                    </span>
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{n.label}</span>
+                    <span className="ml-auto w-2 h-2 rounded-full bg-green-500 animate-pulse-dot" />
                   </div>
-                </div>
+                ))}
+              </div>
 
-                {/* salida: portal */}
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2.5">
-                  <span className="grid place-items-center w-12 h-12 rounded-xl bg-accent-500 text-white shadow-lg">
-                    <ShieldCheck className="w-6 h-6" />
-                  </span>
-                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Tu portal</span>
+              {/* Motor central */}
+              <div className="relative z-10 flex flex-col items-center gap-4 py-2">
+                <div className="relative grid place-items-center w-24 h-24 rounded-3xl bg-brand-600 text-white shadow-2xl ring-1 ring-white/10">
+                  <Calculator className="w-9 h-9" />
+                  <span className="absolute inset-0 rounded-3xl ring-2 ring-brand-400/50 animate-ping" aria-hidden />
                 </div>
+                <div className="text-center">
+                  <p className="font-display text-sm font-semibold text-slate-900 dark:text-white">Procesamos y conciliamos</p>
+                  <p className="text-xs text-slate-500">en tiempo real</p>
+                </div>
+              </div>
+
+              {/* Salida: portal */}
+              <div className="glass-card rounded-2xl p-5 shadow-sm">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <span className="grid place-items-center w-10 h-10 rounded-lg bg-accent-500 text-white shadow">
+                    <ShieldCheck className="w-5 h-5" />
+                  </span>
+                  <span className="font-semibold text-slate-900 dark:text-white">Tu portal, listo</span>
+                </div>
+                <ul className="space-y-2.5">
+                  {["Balances y estados", "F29 y declaraciones", "Liquidaciones", "KPIs financieros"].map((d) => (
+                    <li key={d} className="flex items-center gap-2.5 text-sm text-slate-600 dark:text-slate-300">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" strokeWidth={3} />
+                      {d}
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           </div>
@@ -481,10 +560,11 @@ export default function Home() {
         {/* ============== 6. CTA FINAL ============== */}
         <section className="pb-24">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div data-reveal className="relative overflow-hidden rounded-3xl bg-brand-600 px-8 py-16 md:py-20 text-center">
+            <div data-reveal className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-700 via-brand-600 to-brand-700 px-8 py-16 md:py-20 text-center">
               <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[36rem] h-[36rem] glow-accent" aria-hidden />
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 h-1 w-24 rounded-b-full bg-accent-500" aria-hidden />
               <div className="relative z-10 max-w-2xl mx-auto">
-                <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-5">
+                <h2 className="font-display text-3xl md:text-5xl font-semibold tracking-tight text-white mb-5">
                   Deja tus números en manos expertas
                 </h2>
                 <p className="text-brand-100 text-lg mb-9">
@@ -548,7 +628,7 @@ export default function Home() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
-          <p>© 2025 Contabilidad con María. Todos los derechos reservados.</p>
+          <p>© 2026 Contabilidad con María. Todos los derechos reservados.</p>
           <p className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse-dot" />
             Todos los sistemas operativos
