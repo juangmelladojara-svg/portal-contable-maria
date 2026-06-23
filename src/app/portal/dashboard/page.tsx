@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Folder, FileText, Download, ChevronRight, Loader2 } from "lucide-react";
+import { Folder, FileText, Download, ChevronRight, ChevronDown, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { CATEGORIAS, CATEGORIA_OTROS, resolverCategoria, type Categoria } from "@/lib/categorias";
 
 interface Documento {
   id: string;
@@ -33,6 +34,11 @@ export default function DashboardPage() {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   // currentPath: [] = años, [year] = meses, [year, month] = archivos
   const [currentPath, setCurrentPath] = useState<string[]>([]);
+  // Categorías contraídas dentro de la vista de un mes (key → true = colapsada)
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  const toggleCat = (key: string) =>
+    setCollapsed((prev) => ({ ...prev, [key]: !(prev[key] ?? true) }));
 
   useEffect(() => {
     const cargar = async () => {
@@ -119,57 +125,83 @@ export default function DashboardPage() {
 
     const [year, month] = currentPath;
     const files = documents.filter((d) => d.anio === year && d.mes === month);
+
+    // Agrupar por categoría: las 4 oficiales en orden + "Otros" para etiquetas heredadas.
+    const grupos: { cat: Categoria; docs: Documento[] }[] = CATEGORIAS.map((cat) => ({
+      cat,
+      docs: files.filter((d) => resolverCategoria(d.categoria).key === cat.key),
+    }));
+    const otros = files.filter((d) => resolverCategoria(d.categoria).key === CATEGORIA_OTROS.key);
+    if (otros.length) grupos.push({ cat: CATEGORIA_OTROS, docs: otros });
+
     return (
-      <div className="glass-card rounded-2xl overflow-hidden">
-        <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
-          <thead className="bg-slate-50/70 dark:bg-slate-950/40">
-            <tr>
-              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Archivo</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Categoría</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Fecha</th>
-              <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Acción</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-            {files.map((doc) => (
-              <tr key={doc.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center gap-3">
-                    <span className="grid place-items-center w-8 h-8 rounded-lg bg-brand-50 dark:bg-brand-900/30 text-brand-600 flex-shrink-0">
-                      <FileText className="w-4 h-4" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">{doc.nombre}</p>
-                      <p className="text-xs text-slate-500">{formatSize(doc.size_bytes)}</p>
-                    </div>
+      <div className="space-y-4">
+        {grupos.map(({ cat, docs }) => {
+          // Por defecto las categorías arrancan cerradas (acordeón).
+          const isCollapsed = collapsed[cat.key] ?? true;
+          const Icon = cat.icon;
+          return (
+            <div key={cat.key} className="glass-card rounded-2xl overflow-hidden">
+              <button
+                onClick={() => toggleCat(cat.key)}
+                className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors"
+              >
+                <span className={`grid place-items-center w-9 h-9 rounded-lg ${cat.chipCls} flex-shrink-0`}>
+                  <Icon className="w-[18px] h-[18px]" strokeWidth={1.8} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-slate-900 dark:text-white">{cat.label}</p>
+                  <p className="text-xs text-slate-500 truncate">{cat.desc}</p>
+                </div>
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${cat.chipCls}`}>
+                  {docs.length} {docs.length === 1 ? "archivo" : "archivos"}
+                </span>
+                <ChevronDown
+                  className={`w-5 h-5 text-slate-400 transition-transform ${isCollapsed ? "-rotate-90" : ""}`}
+                />
+              </button>
+
+              {!isCollapsed && (
+                docs.length === 0 ? (
+                  <p className="px-5 pb-5 pt-1 text-sm text-slate-400 border-t border-slate-100 dark:border-slate-800">
+                    Sin archivos en esta categoría para {month} {year}.
+                  </p>
+                ) : (
+                  <div className="border-t border-slate-100 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800">
+                    {docs.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                      >
+                        <span className="grid place-items-center w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 flex-shrink-0">
+                          <FileText className="w-4 h-4" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{doc.nombre}</p>
+                          <p className="text-xs text-slate-500">
+                            {formatSize(doc.size_bytes)} · {new Date(doc.created_at).toLocaleDateString("es-CL")}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleDownload(doc)}
+                          disabled={downloadingId === doc.id}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-brand-50 dark:bg-brand-900/20 px-3 py-1.5 text-sm font-medium text-brand-600 hover:text-brand-800 dark:hover:text-brand-400 transition-colors disabled:opacity-60 flex-shrink-0"
+                        >
+                          {downloadingId === doc.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Download className="w-4 h-4" />
+                          )}
+                          <span className="hidden sm:inline">Descargar</span>
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-xs font-medium text-slate-700 dark:text-slate-300">
-                    {doc.categoria}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                  {new Date(doc.created_at).toLocaleDateString("es-CL")}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <button
-                    onClick={() => handleDownload(doc)}
-                    disabled={downloadingId === doc.id}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-brand-50 dark:bg-brand-900/20 px-3 py-1.5 text-sm font-medium text-brand-600 hover:text-brand-800 dark:hover:text-brand-400 transition-colors disabled:opacity-60"
-                  >
-                    {downloadingId === doc.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Download className="w-4 h-4" />
-                    )}
-                    Descargar
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                )
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   };

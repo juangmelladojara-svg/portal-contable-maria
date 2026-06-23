@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { UploadCloud, FileText, CheckCircle2, Save, Loader2, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { CATEGORIAS, resolverCategoria } from "@/lib/categorias";
 
 interface Cliente {
   id: string;
@@ -46,7 +47,7 @@ export default function AdminDashboard() {
   const formRef = useRef<HTMLFormElement>(null);
 
   const [clienteId, setClienteId] = useState("");
-  const [category, setCategory] = useState("Balances");
+  const [category, setCategory] = useState("Financiero");
   const [month, setMonth] = useState("Marzo");
   const [year, setYear] = useState("2025");
   const [file, setFile] = useState<File | null>(null);
@@ -190,11 +191,15 @@ export default function AdminDashboard() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Categoría</label>
                 <select value={category} onChange={(e) => setCategory(e.target.value)} className={selectCls}>
-                  <option value="Balances">Balances y Estados</option>
-                  <option value="Impuestos">Impuestos (F29, F22)</option>
-                  <option value="Remuneraciones">Remuneraciones y Leyes Sociales</option>
-                  <option value="Legal">Legal y Contratos</option>
+                  {CATEGORIAS.map((c) => (
+                    <option key={c.key} value={c.key}>
+                      {c.label} — {c.desc}
+                    </option>
+                  ))}
                 </select>
+                <p className="mt-1 text-xs text-slate-400">
+                  El cliente verá sus archivos del mes agrupados por esta categoría.
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -290,7 +295,7 @@ export default function AdminDashboard() {
                             <FileText className="w-4 h-4 text-slate-400 flex-shrink-0" />
                             <div>
                               <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{doc.nombre}</p>
-                              <p className="text-xs text-slate-400">{doc.categoria} · {formatSize(doc.size_bytes)}</p>
+                              <p className="text-xs text-slate-400">{resolverCategoria(doc.categoria).label} · {formatSize(doc.size_bytes)}</p>
                             </div>
                           </div>
                         </td>
