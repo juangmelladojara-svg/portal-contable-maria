@@ -125,14 +125,15 @@ export default function Home() {
         delay: 0.1,
       });
 
-      // Reveal genérico por sección
+      // Reveal genérico por sección (ágil + GPU)
       gsap.utils.toArray<HTMLElement>("[data-reveal]").forEach((el) => {
         gsap.from(el, {
-          y: 34,
+          y: 24,
           opacity: 0,
-          duration: 0.8,
-          ease: "power3.out",
-          scrollTrigger: { trigger: el, start: "top 85%" },
+          duration: 0.55,
+          ease: "power2.out",
+          force3D: true,
+          scrollTrigger: { trigger: el, start: "top 90%" },
         });
       });
 
@@ -140,20 +141,22 @@ export default function Home() {
       gsap.from(".bento-bar", {
         scaleY: 0,
         transformOrigin: "bottom",
-        duration: 0.7,
-        ease: "power3.out",
-        stagger: 0.05,
-        scrollTrigger: { trigger: ".bento-bars", start: "top 85%" },
+        duration: 0.5,
+        ease: "power2.out",
+        force3D: true,
+        stagger: 0.035,
+        scrollTrigger: { trigger: ".bento-bars", start: "top 90%" },
       });
 
       // Impuestos: las casillas se auto-marcan en secuencia
       gsap.from(".tax-check-icon", {
         scale: 0,
         opacity: 0,
-        duration: 0.4,
+        duration: 0.3,
         ease: "back.out(2)",
-        stagger: 0.18,
-        scrollTrigger: { trigger: ".tax-list", start: "top 85%" },
+        force3D: true,
+        stagger: 0.1,
+        scrollTrigger: { trigger: ".tax-list", start: "top 90%" },
       });
 
       // Remuneraciones: documentos que entran escalonados

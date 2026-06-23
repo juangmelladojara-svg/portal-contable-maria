@@ -54,8 +54,11 @@ body {
   .glass {
     @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-sm dark:bg-slate-900/70 dark:border-white/10;
   }
+  /* Blur ligero (sm) en vez de xl: sobre fondos planos se ve igual pero es
+     MUCHO más barato de renderizar (el backdrop-blur grande causa jank al
+     animar/scrollear varias tarjetas a la vez). */
   .glass-card {
-    @apply bg-white/80 backdrop-blur-xl border border-black/5 shadow-sm dark:bg-slate-900/60 dark:border-white/10;
+    @apply bg-white/90 backdrop-blur-sm border border-black/5 shadow-sm dark:bg-slate-900/80 dark:border-white/10;
   }
 
   /* ---------- Profundidad / Glows radiales ---------- */
