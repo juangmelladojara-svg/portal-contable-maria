@@ -66,12 +66,14 @@ export default function BrandMark({
   let content: React.ReactNode;
 
   if (showWordmark) {
-    content = logoSrc ? (
+    // En fondos oscuros (footer) el logo con fondo blanco se vería como un
+    // recuadro → ahí usamos siempre el wordmark tipográfico.
+    content = logoSrc && !light ? (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={logoSrc}
         alt="Contabilidad con María"
-        className={`h-11 sm:h-12 w-auto object-contain ${light ? "brightness-0 invert" : ""} ${className}`}
+        className={`h-11 sm:h-12 w-auto object-contain ${className}`}
       />
     ) : (
       <span className={className}>
