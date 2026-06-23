@@ -68,17 +68,29 @@ const remDocs = [
   { label: "Finiquitos", icon: FileCheck2 },
 ];
 
-/** Logo de cliente con respaldo al nombre si aún no existe el archivo /clientes/<file>.png */
+/** Logo de cliente (acepta png/jpg/jpeg/webp); si no existe, muestra el nombre. */
 function ClientLogo({ c }: { c: { name: string; file: string } }) {
-  const [ok, setOk] = useState(false);
+  const [src, setSrc] = useState<string | null>(null);
 
   useEffect(() => {
-    const img = new window.Image();
-    img.onload = () => setOk(true);
-    img.src = `/clientes/${c.file}.png`;
+    let cancelled = false;
+    (async () => {
+      for (const ext of ["png", "jpg", "jpeg", "webp"]) {
+        const url = `/clientes/${c.file}.${ext}`;
+        const found = await new Promise<string | null>((res) => {
+          const img = new window.Image();
+          img.onload = () => res(url);
+          img.onerror = () => res(null);
+          img.src = url;
+        });
+        if (cancelled) return;
+        if (found) { setSrc(found); return; }
+      }
+    })();
+    return () => { cancelled = true; };
   }, [c.file]);
 
-  if (!ok) {
+  if (!src) {
     return (
       <span className="text-lg md:text-xl font-bold text-slate-300 dark:text-slate-700 whitespace-nowrap shrink-0">
         {c.name.split(" · ")[0]}
@@ -88,7 +100,7 @@ function ClientLogo({ c }: { c: { name: string; file: string } }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={`/clientes/${c.file}.png`}
+      src={src}
       alt={c.name}
       title={c.name}
       className="h-10 md:h-12 w-auto object-contain grayscale opacity-60 hover:opacity-100 hover:grayscale-0 transition duration-300 shrink-0"

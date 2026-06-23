@@ -42,22 +42,34 @@ export default function BrandMark({
   href,
   className = "",
 }: BrandMarkProps) {
-  const [logoOk, setLogoOk] = useState(false);
+  const [logoSrc, setLogoSrc] = useState<string | null>(null);
 
   useEffect(() => {
     if (!showWordmark) return;
-    const img = new window.Image();
-    img.onload = () => setLogoOk(true);
-    img.src = "/logo.png";
+    let cancelled = false;
+    (async () => {
+      for (const ext of ["png", "jpg", "jpeg", "webp"]) {
+        const url = `/logo.${ext}`;
+        const found = await new Promise<string | null>((res) => {
+          const img = new window.Image();
+          img.onload = () => res(url);
+          img.onerror = () => res(null);
+          img.src = url;
+        });
+        if (cancelled) return;
+        if (found) { setLogoSrc(found); return; }
+      }
+    })();
+    return () => { cancelled = true; };
   }, [showWordmark]);
 
   let content: React.ReactNode;
 
   if (showWordmark) {
-    content = logoOk ? (
+    content = logoSrc ? (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src="/logo.png"
+        src={logoSrc}
         alt="Contabilidad con María"
         className={`h-11 sm:h-12 w-auto object-contain ${light ? "brightness-0 invert" : ""} ${className}`}
       />
