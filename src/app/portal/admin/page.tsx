@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { UploadCloud, FileText, CheckCircle2, Save, Loader2, AlertCircle } from "lucide-react";
+import { UploadCloud, FileText, CheckCircle2, Save, Loader2, AlertCircle, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { CATEGORIAS, resolverCategoria } from "@/lib/categorias";
 
@@ -18,6 +18,7 @@ interface Documento {
   anio: string;
   mes: string;
   size_bytes: number;
+  storage_path: string | null;
   created_at: string;
   cliente_id: string;
   clientes?: { razon_social: string } | null;
@@ -44,6 +45,7 @@ export default function AdminDashboard() {
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   const [clienteId, setClienteId] = useState("");
@@ -57,7 +59,7 @@ export default function AdminDashboard() {
     setLoadingDocs(true);
     const { data } = await supabase
       .from("documentos")
-      .select("id, nombre, categoria, anio, mes, size_bytes, created_at, cliente_id, clientes(razon_social)")
+      .select("id, nombre, categoria, anio, mes, size_bytes, storage_path, created_at, cliente_id, clientes(razon_social)")
       .order("created_at", { ascending: false })
       .limit(100);
     setDocuments((data as unknown as Documento[]) ?? []);
@@ -138,6 +140,35 @@ export default function AdminDashboard() {
     setFile(null);
     if (formRef.current) formRef.current.reset();
     setUploading(false);
+    await cargarDocumentos();
+    setTimeout(() => setSuccessMsg(""), 6000);
+  };
+
+  const handleDelete = async (doc: Documento) => {
+    const ok = window.confirm(
+      `¿Eliminar "${doc.nombre}"?\n\nSe borrará para siempre del portal y el cliente dejará de verlo. Esta acción no se puede deshacer.`
+    );
+    if (!ok) return;
+
+    setDeletingId(doc.id);
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    // 1) Borrar el archivo real del Storage (si existe la ruta)
+    if (doc.storage_path) {
+      await supabase.storage.from("documentos").remove([doc.storage_path]);
+    }
+
+    // 2) Borrar el registro de la base de datos
+    const { error } = await supabase.from("documentos").delete().eq("id", doc.id);
+
+    setDeletingId(null);
+    if (error) {
+      setErrorMsg(`No se pudo eliminar el documento: ${error.message}`);
+      return;
+    }
+
+    setSuccessMsg(`"${doc.nombre}" se eliminó correctamente.`);
     await cargarDocumentos();
     setTimeout(() => setSuccessMsg(""), 6000);
   };
@@ -284,7 +315,8 @@ export default function AdminDashboard() {
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Archivo</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Cliente</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Carpeta</th>
-                      <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Fecha</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Fecha</th>
+                      <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Acción</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
@@ -307,8 +339,23 @@ export default function AdminDashboard() {
                             {doc.anio} / {doc.mes}
                           </span>
                         </td>
-                        <td className="px-6 py-3 whitespace-nowrap text-right text-xs text-slate-500">
+                        <td className="px-6 py-3 whitespace-nowrap text-xs text-slate-500">
                           {new Date(doc.created_at).toLocaleDateString("es-CL")}
+                        </td>
+                        <td className="px-6 py-3 whitespace-nowrap text-right">
+                          <button
+                            onClick={() => handleDelete(doc)}
+                            disabled={deletingId === doc.id}
+                            title="Eliminar documento"
+                            aria-label={`Eliminar ${doc.nombre}`}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-60"
+                          >
+                            {deletingId === doc.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
                         </td>
                       </tr>
                     ))}
