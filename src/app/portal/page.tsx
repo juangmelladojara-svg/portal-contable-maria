@@ -189,14 +189,7 @@ export default function PortalLogin() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-brand-600 focus:ring-brand-500"
-                    />
-                    Recordarme
-                  </label>
+                <div className="flex items-center justify-end">
                   <button
                     type="button"
                     onClick={() => {

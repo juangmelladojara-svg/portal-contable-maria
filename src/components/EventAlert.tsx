@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CalendarClock, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -24,13 +24,21 @@ export default function EventAlert() {
   const [supabase] = useState(() => createClient());
   const [eventos, setEventos] = useState<EventoHoy[]>([]);
   const [open, setOpen] = useState(false);
+  // Clave de localStorage por-usuario, para que el aviso de uno no suprima el de otro.
+  const [storeKey, setStoreKey] = useState("");
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    const hoy = isoHoy();
-    const yaVisto = typeof window !== "undefined" && localStorage.getItem("aviso_eventos") === hoy;
-    if (yaVisto) return;
-
     (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const hoy = isoHoy();
+      const key = `aviso_eventos_${user.id}`;
+      if (localStorage.getItem(key) === hoy) return;
+
       // RLS limita los eventos a los del cliente autenticado.
       const { data } = await supabase
         .from("eventos")
@@ -40,15 +48,27 @@ export default function EventAlert() {
       const lista = (data as EventoHoy[]) ?? [];
       if (lista.length > 0) {
         setEventos(lista);
+        setStoreKey(key);
         setOpen(true);
       }
     })();
   }, [supabase]);
 
-  const cerrar = () => {
-    localStorage.setItem("aviso_eventos", isoHoy());
+  const cerrar = useCallback(() => {
+    if (storeKey) localStorage.setItem(storeKey, isoHoy());
     setOpen(false);
-  };
+  }, [storeKey]);
+
+  // Cierre con tecla Escape + foco inicial en el botón al abrir.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") cerrar();
+    };
+    window.addEventListener("keydown", onKey);
+    closeBtnRef.current?.focus();
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, cerrar]);
 
   if (!open) return null;
 
@@ -92,6 +112,7 @@ export default function EventAlert() {
 
         <div className="p-5 pt-0">
           <button
+            ref={closeBtnRef}
             onClick={cerrar}
             className="btn-glow w-full rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 px-4 transition-colors"
           >

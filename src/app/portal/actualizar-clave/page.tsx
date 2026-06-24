@@ -39,7 +39,11 @@ export default function ActualizarClavePage() {
       return;
     }
     setListo(true);
-    setTimeout(() => router.push("/portal/dashboard"), 1800);
+    // A /portal: el proxy redirige al panel correcto según el rol (admin o cliente).
+    setTimeout(() => {
+      router.refresh();
+      router.push("/portal");
+    }, 1800);
   };
 
   return (

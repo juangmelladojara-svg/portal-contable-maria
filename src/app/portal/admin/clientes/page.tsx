@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Building2, UserPlus, CheckCircle2, AlertCircle, Loader2, Save } from "lucide-react";
+import { Building2, UserPlus, CheckCircle2, AlertCircle, Loader2, Save, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 interface Cliente {
@@ -30,6 +30,7 @@ export default function AdminClientesPage() {
   const [uClienteId, setUClienteId] = useState("");
   const [savingUser, setSavingUser] = useState(false);
   const [msgUser, setMsgUser] = useState<{ ok: boolean; text: string } | null>(null);
+  const [showPwd, setShowPwd] = useState(false);
 
   const cargarClientes = useCallback(async () => {
     setLoading(true);
@@ -166,7 +167,24 @@ export default function AdminClientesPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Contraseña</label>
-                <input type="text" required value={uPassword} onChange={(e) => setUPassword(e.target.value)} className={inputCls} placeholder="Mín. 8 caracteres" />
+                <div className="relative">
+                  <input
+                    type={showPwd ? "text" : "password"}
+                    required
+                    value={uPassword}
+                    onChange={(e) => setUPassword(e.target.value)}
+                    className={`${inputCls} pr-10`}
+                    placeholder="Mín. 8 caracteres"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPwd((v) => !v)}
+                    aria-label={showPwd ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                  >
+                    {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
