@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { UploadCloud, LogOut, Building2, BarChart3 } from "lucide-react";
+import { UploadCloud, LogOut, Building2, BarChart3, CalendarDays } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -72,6 +72,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               { href: "/portal/admin", label: "Documentos", icon: UploadCloud },
               { href: "/portal/admin/clientes", label: "Clientes", icon: Building2 },
               { href: "/portal/admin/metricas", label: "Métricas", icon: BarChart3 },
+              { href: "/portal/admin/eventos", label: "Eventos", icon: CalendarDays },
             ].map((t) => (
               <Link
                 key={t.href}

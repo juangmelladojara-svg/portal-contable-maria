@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { FolderOpen, BarChart3, LogOut } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
+import EventAlert from "@/components/EventAlert";
 import { createClient } from "@/lib/supabase/client";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -107,6 +108,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {children}
       </main>
+
+      {/* Aviso de eventos del día (una vez al día) */}
+      <EventAlert />
     </div>
   );
 }

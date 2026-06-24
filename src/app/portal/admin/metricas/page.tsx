@@ -17,6 +17,13 @@ interface MetricaRow {
   gastos: number;
   iva: number;
   remuneraciones: number;
+  ppm: number;
+  contratos_vigentes_cant: number;
+  contratos_vigentes_total: number;
+  finiquitos_cant: number;
+  finiquitos_total: number;
+  nuevos_contratos_cant: number;
+  nuevos_contratos_total: number;
   clientes?: { razon_social: string } | null;
 }
 
@@ -45,6 +52,13 @@ export default function AdminMetricasPage() {
   const [gastos, setGastos] = useState("");
   const [iva, setIva] = useState("");
   const [remuneraciones, setRemuneraciones] = useState("");
+  const [ppm, setPpm] = useState("");
+  const [vigCant, setVigCant] = useState("");
+  const [vigTotal, setVigTotal] = useState("");
+  const [finCant, setFinCant] = useState("");
+  const [finTotal, setFinTotal] = useState("");
+  const [nuevCant, setNuevCant] = useState("");
+  const [nuevTotal, setNuevTotal] = useState("");
 
   const cargar = useCallback(async () => {
     setLoading(true);
@@ -52,7 +66,7 @@ export default function AdminMetricasPage() {
       supabase.from("clientes").select("id, razon_social").order("razon_social"),
       supabase
         .from("metricas_mensuales")
-        .select("id, cliente_id, periodo, ingresos, gastos, iva, remuneraciones, clientes(razon_social)")
+        .select("id, cliente_id, periodo, ingresos, gastos, iva, remuneraciones, ppm, contratos_vigentes_cant, contratos_vigentes_total, finiquitos_cant, finiquitos_total, nuevos_contratos_cant, nuevos_contratos_total, clientes(razon_social)")
         .order("periodo", { ascending: false })
         .limit(100),
     ]);
@@ -85,6 +99,13 @@ export default function AdminMetricasPage() {
         gastos: Number(gastos) || 0,
         iva: Number(iva) || 0,
         remuneraciones: Number(remuneraciones) || 0,
+        ppm: Number(ppm) || 0,
+        contratos_vigentes_cant: Number(vigCant) || 0,
+        contratos_vigentes_total: Number(vigTotal) || 0,
+        finiquitos_cant: Number(finCant) || 0,
+        finiquitos_total: Number(finTotal) || 0,
+        nuevos_contratos_cant: Number(nuevCant) || 0,
+        nuevos_contratos_total: Number(nuevTotal) || 0,
       },
       { onConflict: "cliente_id,periodo" }
     );
@@ -95,6 +116,8 @@ export default function AdminMetricasPage() {
     }
     setMsg({ ok: true, text: `Métricas de ${periodo} guardadas.` });
     setIngresos(""); setGastos(""); setIva(""); setRemuneraciones("");
+    setPpm(""); setVigCant(""); setVigTotal(""); setFinCant(""); setFinTotal("");
+    setNuevCant(""); setNuevTotal("");
     await cargar();
   };
 
@@ -174,6 +197,46 @@ export default function AdminMetricasPage() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">IVA a pagar (CLP)</label>
                 <input type="number" min="0" value={iva} onChange={(e) => setIva(e.target.value)} className={inputCls} placeholder="1387000" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">PPM acumulado (CLP)</label>
+                <input type="number" min="0" value={ppm} onChange={(e) => setPpm(e.target.value)} className={inputCls} placeholder="620000" />
+              </div>
+
+              <div className="pt-4 mt-2 border-t border-slate-200 dark:border-slate-800">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Contratos del período</p>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Vigentes (cant.)</label>
+                      <input type="number" min="0" value={vigCant} onChange={(e) => setVigCant(e.target.value)} className={inputCls} placeholder="12" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Vigentes (CLP)</label>
+                      <input type="number" min="0" value={vigTotal} onChange={(e) => setVigTotal(e.target.value)} className={inputCls} placeholder="9800000" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Finiquitos mes (cant.)</label>
+                      <input type="number" min="0" value={finCant} onChange={(e) => setFinCant(e.target.value)} className={inputCls} placeholder="1" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Finiquitos (CLP)</label>
+                      <input type="number" min="0" value={finTotal} onChange={(e) => setFinTotal(e.target.value)} className={inputCls} placeholder="850000" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nuevos contratos (cant.)</label>
+                      <input type="number" min="0" value={nuevCant} onChange={(e) => setNuevCant(e.target.value)} className={inputCls} placeholder="2" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nuevos (CLP)</label>
+                      <input type="number" min="0" value={nuevTotal} onChange={(e) => setNuevTotal(e.target.value)} className={inputCls} placeholder="1600000" />
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <button
