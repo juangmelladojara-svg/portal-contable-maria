@@ -71,15 +71,13 @@ const remDocs = [
 ];
 
 // Planes mensuales
-type ItemIncluye = { t: string; sub?: string[] };
 interface Plan {
   num: string;
   nombre: string;
   tagline: string;
-  desc: string;
   precio: string;
   custom: boolean;
-  incluye: ItemIncluye[];
+  incluye: string[];
   ideal: string;
   popular: boolean;
 }
@@ -89,14 +87,13 @@ const planes: Plan[] = [
     num: "01",
     nombre: "Inicio Pyme",
     tagline: "Empieza con el pie derecho.",
-    desc: "Ideal para emprendedores y empresas que desean comenzar con una gestión ordenada desde el primer día.",
     precio: "$65.000",
     custom: false,
     incluye: [
-      { t: "Acceso al Portal del Cliente." },
-      { t: "Dashboard con:", sub: ["Ingresos", "Egresos", "Resultados del período", "Indicadores (KPIs)"] },
-      { t: "Gestión mensual del F29." },
-      { t: "Soporte vía WhatsApp en horario de atención." },
+      "Acceso al Portal del Cliente.",
+      "Dashboard financiero con indicadores (KPIs).",
+      "Gestión mensual del F29.",
+      "Soporte vía WhatsApp en horario de atención.",
     ],
     ideal: "Profesionales, emprendedores y empresas sin trabajadores.",
     popular: false,
@@ -105,16 +102,15 @@ const planes: Plan[] = [
     num: "02",
     nombre: "Pyme Gestión",
     tagline: "Ordena la operación de tu empresa.",
-    desc: "Para empresas en crecimiento que necesitan mantener organizada su gestión contable, tributaria y laboral.",
     precio: "$120.000",
     custom: false,
     incluye: [
-      { t: "Todo lo del Plan Inicio Pyme." },
-      { t: "Gestión de compras y ventas." },
-      { t: "Gestión de Recursos Humanos:", sub: ["Contratos", "Anexos", "Liquidaciones", "Finiquitos"] },
-      { t: "Previred." },
-      { t: "Certificados F30 y F30-1." },
-      { t: "Portal del Cliente actualizado mensualmente con información financiera." },
+      "Todo lo del Plan Inicio Pyme.",
+      "Gestión de compras y ventas.",
+      "Gestión de Recursos Humanos.",
+      "Previred.",
+      "Certificados F30 y F30-1.",
+      "Portal del Cliente actualizado mensualmente.",
     ],
     ideal: "Empresas con 1 a 3 trabajadores.",
     popular: false,
@@ -123,17 +119,16 @@ const planes: Plan[] = [
     num: "03",
     nombre: "Pyme Pro",
     tagline: "Convierte tus números en decisiones.",
-    desc: "Pensado para empresas que necesitan información clara para controlar su negocio y planificar su crecimiento.",
     precio: "$180.000",
     custom: false,
     incluye: [
-      { t: "Todo lo del Plan Pyme Gestión." },
-      { t: "Revisión y análisis de los KPIs del Portal del Cliente." },
-      { t: "Reunión de seguimiento financiero semestral." },
-      { t: "Informe Gerencial Semestral con análisis de:", sub: ["Ventas", "Gastos", "Rentabilidad", "Flujo del negocio", "Principales indicadores"] },
-      { t: "Revisión tributaria preventiva." },
-      { t: "Planificación para la Operación Renta." },
-      { t: "Atención prioritaria vía WhatsApp." },
+      "Todo lo del Plan Pyme Gestión.",
+      "Revisión y análisis de los KPIs del Portal.",
+      "Reunión de seguimiento financiero semestral.",
+      "Informe Gerencial Semestral.",
+      "Revisión tributaria preventiva.",
+      "Planificación para la Operación Renta.",
+      "Atención prioritaria vía WhatsApp.",
     ],
     ideal: "Empresas con 4 a 7 trabajadores.",
     popular: true,
@@ -142,19 +137,18 @@ const planes: Plan[] = [
     num: "04",
     nombre: "Empresas · Corporativo",
     tagline: "Una solución diseñada para tu empresa.",
-    desc: "Pensado para empresas con mayor volumen de operaciones, múltiples trabajadores o necesidades específicas que requieren un servicio contable y laboral a medida.",
     precio: "Cotización",
     custom: true,
     incluye: [
-      { t: "Diagnóstico inicial de la empresa." },
-      { t: "Propuesta de servicio personalizada según tus requerimientos." },
-      { t: "Configuración del Portal de Gestión Empresarial." },
-      { t: "Gestión contable, tributaria y laboral según el alcance acordado." },
-      { t: "Acompañamiento permanente." },
-      { t: "Reuniones periódicas de seguimiento." },
-      { t: "Atención prioritaria." },
+      "Diagnóstico inicial de la empresa.",
+      "Propuesta de servicio personalizada.",
+      "Configuración del Portal de Gestión Empresarial.",
+      "Gestión contable, tributaria y laboral a medida.",
+      "Acompañamiento permanente.",
+      "Reuniones periódicas de seguimiento.",
+      "Atención prioritaria.",
     ],
-    ideal: "Empresas con más de 7 trabajadores, múltiples sucursales, alto volumen de documentos o requerimientos especiales.",
+    ideal: "Empresas con más de 7 trabajadores, múltiples sucursales o alto volumen de documentos.",
     popular: false,
   },
 ];
@@ -742,27 +736,13 @@ export default function Home() {
                     )}
                   </div>
 
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-5">{p.desc}</p>
-
                   {/* Incluye */}
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-3">Incluye</p>
                   <ul className="space-y-2.5">
                     {p.incluye.map((item) => (
-                      <li key={item.t}>
-                        <div className="flex items-start gap-2.5 text-sm text-slate-600 dark:text-slate-300">
-                          <Check className="w-4 h-4 text-brand-500 mt-0.5 flex-shrink-0" strokeWidth={3} />
-                          <span>{item.t}</span>
-                        </div>
-                        {item.sub && (
-                          <ul className="mt-1.5 ml-6 space-y-1">
-                            {item.sub.map((s) => (
-                              <li key={s} className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                                <span className="w-1 h-1 rounded-full bg-accent-400 flex-shrink-0" />
-                                {s}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
+                      <li key={item} className="flex items-start gap-2.5 text-sm text-slate-600 dark:text-slate-300">
+                        <Check className="w-4 h-4 text-brand-500 mt-0.5 flex-shrink-0" strokeWidth={3} />
+                        <span>{item}</span>
                       </li>
                     ))}
                   </ul>
