@@ -25,8 +25,6 @@ import {
   MapPin,
   Mail,
   Phone,
-  ClipboardCheck,
-  PieChart,
   MessageCircle,
   Sparkles,
 } from "lucide-react";
@@ -73,81 +71,105 @@ const remDocs = [
 ];
 
 // Planes mensuales
-const planes = [
+type ItemIncluye = { t: string; sub?: string[] };
+interface Plan {
+  num: string;
+  nombre: string;
+  tagline: string;
+  desc: string;
+  precio: string;
+  custom: boolean;
+  incluye: ItemIncluye[];
+  ideal: string;
+  popular: boolean;
+}
+
+const planes: Plan[] = [
   {
     num: "01",
     nombre: "Inicio Pyme",
-    tagline: "Cumplimiento tributario básico",
-    desc: "Para empresas que solo requieren cumplimiento tributario básico.",
-    precio: "$55.000",
-    nota: null as string | null,
-    icon: ClipboardCheck,
+    tagline: "Empieza con el pie derecho.",
+    desc: "Ideal para emprendedores y empresas que desean comenzar con una gestión ordenada desde el primer día.",
+    precio: "$65.000",
+    custom: false,
     incluye: [
-      "Registro de compras y ventas",
-      "Declaración Formulario 29 (F29)",
-      "Libros tributarios",
-      "Soporte básico por consultas",
+      { t: "Acceso al Portal del Cliente." },
+      { t: "Dashboard con:", sub: ["Ingresos", "Egresos", "Resultados del período", "Indicadores (KPIs)"] },
+      { t: "Gestión mensual del F29." },
+      { t: "Soporte vía WhatsApp en horario de atención." },
     ],
-    destacado: null as string | null,
-    ideal: "Ideal para profesionales, emprendedores y empresas sin trabajadores.",
+    ideal: "Profesionales, emprendedores y empresas sin trabajadores.",
     popular: false,
   },
   {
     num: "02",
     nombre: "Pyme Gestión",
-    tagline: "Orden y acompañamiento contable",
-    desc: "Para empresas que buscan mayor orden y acompañamiento contable.",
+    tagline: "Ordena la operación de tu empresa.",
+    desc: "Para empresas en crecimiento que necesitan mantener organizada su gestión contable, tributaria y laboral.",
     precio: "$120.000",
-    nota: null,
-    icon: TrendingUp,
+    custom: false,
     incluye: [
-      "Todo lo del plan Inicio Pyme",
-      "Pre balance básico",
-      "Revisión tributaria mensual",
-      "Análisis simple de PPM",
-      "Reunión semestral",
+      { t: "Todo lo del Plan Inicio Pyme." },
+      { t: "Gestión de compras y ventas." },
+      { t: "Gestión de Recursos Humanos:", sub: ["Contratos", "Anexos", "Liquidaciones", "Finiquitos"] },
+      { t: "Previred." },
+      { t: "Certificados F30 y F30-1." },
+      { t: "Portal del Cliente actualizado mensualmente con información financiera." },
     ],
-    destacado: "Incluye Declaración Renta Anual",
-    ideal: "Ideal para pymes en crecimiento con 1 a 3 trabajadores.",
+    ideal: "Empresas con 1 a 3 trabajadores.",
     popular: false,
   },
   {
     num: "03",
     nombre: "Pyme Pro",
-    tagline: "Análisis, control y apoyo estratégico",
-    desc: "Para empresas que buscan análisis, control y mayor apoyo estratégico.",
+    tagline: "Convierte tus números en decisiones.",
+    desc: "Pensado para empresas que necesitan información clara para controlar su negocio y planificar su crecimiento.",
     precio: "$180.000",
-    nota: null,
-    icon: PieChart,
+    custom: false,
     incluye: [
-      "Todo lo del plan Pyme Gestión",
-      "Informe mensual resumido",
-      "Dashboard básico",
-      "Seguimiento tributario",
-      "Mayor acompañamiento y soporte",
+      { t: "Todo lo del Plan Pyme Gestión." },
+      { t: "Revisión y análisis de los KPIs del Portal del Cliente." },
+      { t: "Reunión de seguimiento financiero semestral." },
+      { t: "Informe Gerencial Semestral con análisis de:", sub: ["Ventas", "Gastos", "Rentabilidad", "Flujo del negocio", "Principales indicadores"] },
+      { t: "Revisión tributaria preventiva." },
+      { t: "Planificación para la Operación Renta." },
+      { t: "Atención prioritaria vía WhatsApp." },
     ],
-    destacado: "Incluye Declaración Renta Anual",
-    ideal: "Ideal para pymes consolidadas con 4 a 7 trabajadores.",
+    ideal: "Empresas con 4 a 7 trabajadores.",
     popular: true,
   },
   {
     num: "04",
-    nombre: "Empresas / Corporativo",
-    tagline: "Servicio personalizado según complejidad",
-    desc: "Para empresas con mayor volumen operacional y requerimientos específicos.",
-    precio: "A evaluar",
-    nota: "Cotización a medida",
-    icon: Building2,
+    nombre: "Empresas · Corporativo",
+    tagline: "Una solución diseñada para tu empresa.",
+    desc: "Pensado para empresas con mayor volumen de operaciones, múltiples trabajadores o necesidades específicas que requieren un servicio contable y laboral a medida.",
+    precio: "Cotización",
+    custom: true,
     incluye: [
-      "Evaluamos tu empresa y diseñamos un plan a la medida de tus necesidades.",
+      { t: "Diagnóstico inicial de la empresa." },
+      { t: "Propuesta de servicio personalizada según tus requerimientos." },
+      { t: "Configuración del Portal de Gestión Empresarial." },
+      { t: "Gestión contable, tributaria y laboral según el alcance acordado." },
+      { t: "Acompañamiento permanente." },
+      { t: "Reuniones periódicas de seguimiento." },
+      { t: "Atención prioritaria." },
     ],
-    destacado: null,
-    ideal: "Ideal para empresas con más de 7 trabajadores o alta complejidad.",
+    ideal: "Empresas con más de 7 trabajadores, múltiples sucursales, alto volumen de documentos o requerimientos especiales.",
     popular: false,
   },
 ];
 
-// Beneficios transversales (franja inferior de planes)
+// Factores que inciden en el valor de la Declaración Anual de Renta
+const factoresRenta = [
+  "Cantidad de Declaraciones Juradas a presentar.",
+  "Preparación y presentación del Formulario 22.",
+  "Participación de socios y declaraciones asociadas.",
+  "Registros empresariales tributarios (RAI, DDAN, REX, SAC, entre otros, cuando corresponda).",
+  "Rectificaciones o regularizaciones.",
+  "Revisión y análisis de la información tributaria del ejercicio.",
+];
+
+// Beneficios transversales
 const beneficios = [
   { icon: MessageCircle, t: "Atención cercana", d: "Respuestas rápidas y acompañamiento constante." },
   { icon: CalendarCheck, t: "Reuniones", d: "Reunión semestral incluida en planes Gestión y Pro." },
@@ -697,26 +719,19 @@ export default function Home() {
                     </span>
                   )}
 
-                  {/* Cabecera */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="grid place-items-center w-11 h-11 rounded-xl bg-brand-600 text-white shadow-sm flex-shrink-0">
-                      <p.icon className="w-5 h-5" />
-                    </span>
-                    <div>
-                      <p className="text-[11px] font-semibold tracking-wider text-slate-400">PLAN {p.num}</p>
-                      <h3 className="font-display text-lg font-bold text-slate-900 dark:text-white leading-tight">
-                        {p.nombre}
-                      </h3>
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">{p.tagline}</p>
+                  {/* Cabecera: numeral editorial en vez de icono genérico */}
+                  <span className="font-display text-3xl font-bold text-accent-500/90">{p.num}</span>
+                  <h3 className="mt-3 font-display text-xl font-bold text-slate-900 dark:text-white leading-tight">
+                    {p.nombre}
+                  </h3>
+                  <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">{p.tagline}</p>
 
                   {/* Precio */}
                   <div className="my-5">
-                    {p.nota ? (
+                    {p.custom ? (
                       <>
-                        <span className="font-display text-3xl font-bold text-slate-900 dark:text-white">{p.precio}</span>
-                        <p className="text-sm font-medium text-accent-600 mt-1">{p.nota}</p>
+                        <span className="font-display text-3xl font-bold text-slate-900 dark:text-white">Cotización</span>
+                        <p className="text-sm font-medium text-accent-600 mt-1">personalizada, a la medida</p>
                       </>
                     ) : (
                       <>
@@ -733,22 +748,31 @@ export default function Home() {
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-3">Incluye</p>
                   <ul className="space-y-2.5">
                     {p.incluye.map((item) => (
-                      <li key={item} className="flex items-start gap-2.5 text-sm text-slate-600 dark:text-slate-300">
-                        <Check className="w-4 h-4 text-brand-500 mt-0.5 flex-shrink-0" strokeWidth={3} />
-                        {item}
+                      <li key={item.t}>
+                        <div className="flex items-start gap-2.5 text-sm text-slate-600 dark:text-slate-300">
+                          <Check className="w-4 h-4 text-brand-500 mt-0.5 flex-shrink-0" strokeWidth={3} />
+                          <span>{item.t}</span>
+                        </div>
+                        {item.sub && (
+                          <ul className="mt-1.5 ml-6 space-y-1">
+                            {item.sub.map((s) => (
+                              <li key={s} className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                                <span className="w-1 h-1 rounded-full bg-accent-400 flex-shrink-0" />
+                                {s}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </li>
                     ))}
-                    {p.destacado && (
-                      <li className="flex items-start gap-2.5 text-sm font-semibold text-accent-700 dark:text-accent-500">
-                        <Sparkles className="w-4 h-4 text-accent-500 mt-0.5 flex-shrink-0" />
-                        {p.destacado}
-                      </li>
-                    )}
                   </ul>
 
                   {/* Pie: ideal + CTA */}
                   <div className="mt-auto pt-5 border-t border-slate-100 dark:border-slate-800">
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">{p.ideal}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                      <span className="font-semibold text-slate-600 dark:text-slate-300">Ideal para: </span>
+                      {p.ideal}
+                    </p>
                     <a
                       href="#contacto"
                       className={`inline-flex w-full items-center justify-center gap-1.5 text-sm font-semibold py-2.5 px-4 rounded-lg transition-colors ${
@@ -757,7 +781,7 @@ export default function Home() {
                           : "border border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-900/20"
                       }`}
                     >
-                      {p.nota ? "Solicitar cotización" : "Contratar plan"}
+                      {p.custom ? "Solicitar cotización" : "Contratar plan"}
                       <ArrowRight className="w-4 h-4" />
                     </a>
                   </div>
@@ -765,17 +789,40 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Franja de beneficios transversales */}
-            <div data-reveal className="mt-12 rounded-3xl bg-gradient-to-br from-brand-700 to-brand-800 p-6 md:p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Servicio adicional: Declaración Anual de Renta (sobrio y legible) */}
+            <div data-reveal className="mt-10 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 p-7 md:p-9">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-4">
+                <h3 className="font-display text-xl font-bold text-slate-900 dark:text-white">
+                  Declaración Anual de Renta
+                </h3>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-accent-700 dark:text-accent-500 bg-accent-500/10 px-2.5 py-1 rounded-full">
+                  Servicio adicional
+                </span>
+                <span className="md:ml-auto text-sm font-semibold text-brand-700 dark:text-brand-300">
+                  desde $150.000 + IVA
+                </span>
+              </div>
+              <p className="text-sm text-slate-600 dark:text-slate-400 max-w-3xl">
+                El precio final depende del volumen y la complejidad de la información a procesar. Su valor se
+                determina según factores como:
+              </p>
+              <ul className="mt-4 grid sm:grid-cols-2 gap-x-8 gap-y-2.5">
+                {factoresRenta.map((f) => (
+                  <li key={f} className="flex items-start gap-2.5 text-sm text-slate-600 dark:text-slate-300">
+                    <Check className="w-4 h-4 text-brand-400 mt-0.5 flex-shrink-0" strokeWidth={2.5} />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Beneficios transversales — versión sobria (sin barra azul) */}
+            <div data-reveal className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-200 dark:bg-slate-800">
               {beneficios.map((b) => (
-                <div key={b.t} className="flex items-start gap-3">
-                  <span className="grid place-items-center w-10 h-10 rounded-xl bg-white/10 text-accent-400 flex-shrink-0">
-                    <b.icon className="w-5 h-5" />
-                  </span>
-                  <div>
-                    <p className="font-semibold text-white text-sm">{b.t}</p>
-                    <p className="text-brand-100 text-xs mt-0.5 leading-relaxed">{b.d}</p>
-                  </div>
+                <div key={b.t} className="bg-slate-50 dark:bg-slate-900 p-6">
+                  <b.icon className="w-5 h-5 text-slate-400 dark:text-slate-500 mb-3" strokeWidth={1.5} />
+                  <p className="font-semibold text-slate-900 dark:text-white text-sm">{b.t}</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-xs mt-1 leading-relaxed">{b.d}</p>
                 </div>
               ))}
             </div>
