@@ -25,7 +25,6 @@ import {
   MapPin,
   Mail,
   Phone,
-  MessageCircle,
   Sparkles,
 } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
@@ -161,14 +160,6 @@ const factoresRenta = [
   "Registros empresariales tributarios (RAI, DDAN, REX, SAC, entre otros, cuando corresponda).",
   "Rectificaciones o regularizaciones.",
   "Revisión y análisis de la información tributaria del ejercicio.",
-];
-
-// Beneficios transversales
-const beneficios = [
-  { icon: MessageCircle, t: "Atención cercana", d: "Respuestas rápidas y acompañamiento constante." },
-  { icon: CalendarCheck, t: "Reuniones", d: "Reunión semestral incluida en planes Gestión y Pro." },
-  { icon: ShieldCheck, t: "Tranquilidad y confianza", d: "Nos ocupamos de tus números para que tú te enfoques en crecer." },
-  { icon: Phone, t: "¿Hablamos?", d: "Escríbenos y conversemos sobre el plan ideal para tu empresa." },
 ];
 
 /** Logo de cliente (acepta png/jpg/jpeg/webp); si no existe, muestra el nombre. */
@@ -794,17 +785,6 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
-            </div>
-
-            {/* Beneficios transversales — versión sobria (sin barra azul) */}
-            <div data-reveal className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-200 dark:bg-slate-800">
-              {beneficios.map((b) => (
-                <div key={b.t} className="bg-slate-50 dark:bg-slate-900 p-6">
-                  <b.icon className="w-5 h-5 text-slate-400 dark:text-slate-500 mb-3" strokeWidth={1.5} />
-                  <p className="font-semibold text-slate-900 dark:text-white text-sm">{b.t}</p>
-                  <p className="text-slate-500 dark:text-slate-400 text-xs mt-1 leading-relaxed">{b.d}</p>
-                </div>
-              ))}
             </div>
 
             <p data-reveal className="mt-8 text-center text-xs text-slate-400 max-w-2xl mx-auto">
