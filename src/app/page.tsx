@@ -43,14 +43,26 @@ const clientes = [
   { name: "Coliseo · Constructora Bizama", file: "coliseo" },
 ];
 
-// Carrusel del portal — pantallazos reales del portal (en public/portal/)
-const portalShots = [
-  { src: "/portal/02-dashboard.png", label: "Tus archivos por año y mes" },
-  { src: "/portal/03-metricas.png", label: "KPIs financieros" },
-  { src: "/portal/04-admin-subir.png", label: "Carga de documentos" },
-  { src: "/portal/06-admin-metricas.png", label: "Métricas mensuales" },
-  { src: "/portal/05-admin-clientes.png", label: "Gestión de clientes" },
-  { src: "/portal/01-login.png", label: "Acceso seguro 24/7" },
+// Vistas del portal (pestañas interactivas) — pantallazos reales en public/portal/
+const portalTabs = [
+  {
+    icon: Folder,
+    label: "Archivos",
+    src: "/portal/02-dashboard.png",
+    desc: "Tus carpetas por año y mes, listas para descargar cuando quieras.",
+  },
+  {
+    icon: TrendingUp,
+    label: "KPIs financieros",
+    src: "/portal/03-metricas.png",
+    desc: "Tus números clave del mes —ingresos, gastos y márgenes— siempre al día.",
+  },
+  {
+    icon: LogIn,
+    label: "Acceso seguro",
+    src: "/portal/01-login.png",
+    desc: "Entra cuando quieras, 24/7, con tu acceso privado y desde cualquier dispositivo.",
+  },
 ];
 
 // Gráfico de 12 meses (ingresos mensuales, en %)
@@ -204,6 +216,7 @@ function ClientLogo({ c }: { c: { name: string; file: string } }) {
 
 export default function Home() {
   const root = useRef<HTMLDivElement>(null);
+  const [portalTab, setPortalTab] = useState(0);
 
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
@@ -417,51 +430,68 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ============== 3b. PORTAL — carrusel de imágenes reales ============== */}
-        <section className="py-20 lg:py-24 bg-[#faf9f7] dark:bg-slate-950 overflow-hidden">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-12">
-            <span data-reveal className="inline-block text-xs font-semibold uppercase tracking-[0.18em] text-accent-600 mb-3">
-              El portal
-            </span>
-            <h2 data-reveal className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-slate-900 dark:text-white">
-              Toda tu información, en un solo lugar
-            </h2>
-          </div>
+        {/* ============== 3b. PORTAL — vistas interactivas (tabs) ============== */}
+        <section className="py-20 lg:py-28 bg-[#faf9f7] dark:bg-slate-950">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div data-reveal className="text-center max-w-2xl mx-auto mb-10">
+              <span className="inline-block text-xs font-semibold uppercase tracking-[0.18em] text-accent-600 mb-3">
+                El portal
+              </span>
+              <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-slate-900 dark:text-white mb-4">
+                Conoce el portal por dentro
+              </h2>
+              <p className="text-lg text-slate-600 dark:text-slate-400">
+                Tu información ordenada y disponible cuando la necesites. Elige una vista:
+              </p>
+            </div>
 
-          {/* Carrusel infinito (dos pistas duplicadas para loop continuo) */}
-          <div
-            className="relative flex"
-            style={{
-              maskImage: "linear-gradient(to right, transparent, #000 8%, #000 92%, transparent)",
-              WebkitMaskImage: "linear-gradient(to right, transparent, #000 8%, #000 92%, transparent)",
-            }}
-          >
-            {[0, 1].map((track) => (
-              <div
-                key={track}
-                aria-hidden={track === 1}
-                className={`flex items-center gap-5 px-2.5 min-w-max ${track === 0 ? "animate-marquee" : "absolute top-0 left-0 animate-marquee2"}`}
-              >
-                {portalShots.map((shot, i) => (
-                  <figure
-                    key={`${track}-${i}`}
-                    className="relative w-72 sm:w-80 aspect-[16/10] rounded-2xl overflow-hidden shadow-lg ring-1 ring-black/5 shrink-0"
-                  >
-                    <Image
-                      src={shot.src}
-                      alt={shot.label}
-                      fill
-                      sizes="320px"
-                      className="object-cover object-top"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-brand-900/70 via-brand-900/10 to-transparent" />
-                    <figcaption className="absolute bottom-3 left-4 text-sm font-semibold text-white drop-shadow">
-                      {shot.label}
-                    </figcaption>
-                  </figure>
+            {/* Pestañas */}
+            <div data-reveal className="flex flex-wrap justify-center gap-2 mb-8">
+              {portalTabs.map((t, i) => (
+                <button
+                  key={t.label}
+                  onClick={() => setPortalTab(i)}
+                  aria-pressed={portalTab === i}
+                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                    portalTab === i
+                      ? "bg-brand-600 text-white shadow-sm"
+                      : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-brand-300 hover:text-brand-700"
+                  }`}
+                >
+                  <t.icon className="w-4 h-4" />
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Marco de navegador con la vista activa */}
+            <div data-reveal className="rounded-2xl overflow-hidden ring-1 ring-black/5 shadow-2xl bg-white dark:bg-slate-900">
+              <div className="flex items-center gap-2 px-4 h-10 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+                <span className="w-3 h-3 rounded-full bg-red-400" />
+                <span className="w-3 h-3 rounded-full bg-amber-400" />
+                <span className="w-3 h-3 rounded-full bg-green-400" />
+                <span className="ml-3 text-xs font-mono text-slate-400 truncate">portal.contabilidadconmaria.cl</span>
+              </div>
+              <div className="relative aspect-[16/10]">
+                {portalTabs.map((t, i) => (
+                  <Image
+                    key={t.src}
+                    src={t.src}
+                    alt={t.label}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 1024px"
+                    className={`object-cover object-top transition-opacity duration-500 ${
+                      portalTab === i ? "opacity-100" : "opacity-0 pointer-events-none"
+                    }`}
+                  />
                 ))}
               </div>
-            ))}
+            </div>
+
+            {/* Descripción de la vista activa */}
+            <p data-reveal className="mt-5 text-center text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
+              {portalTabs[portalTab].desc}
+            </p>
           </div>
         </section>
 
