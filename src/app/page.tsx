@@ -25,6 +25,10 @@ import {
   MapPin,
   Mail,
   Phone,
+  ClipboardCheck,
+  PieChart,
+  MessageCircle,
+  Sparkles,
 } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
 
@@ -66,6 +70,89 @@ const remDocs = [
   { label: "Comprobantes de vacaciones", icon: CalendarCheck },
   { label: "Contrato de trabajo", icon: FileText },
   { label: "Finiquitos", icon: FileCheck2 },
+];
+
+// Planes mensuales
+const planes = [
+  {
+    num: "01",
+    nombre: "Inicio Pyme",
+    tagline: "Cumplimiento tributario básico",
+    desc: "Para empresas que solo requieren cumplimiento tributario básico.",
+    precio: "$55.000",
+    nota: null as string | null,
+    icon: ClipboardCheck,
+    incluye: [
+      "Registro de compras y ventas",
+      "Declaración Formulario 29 (F29)",
+      "Libros tributarios",
+      "Soporte básico por consultas",
+    ],
+    destacado: null as string | null,
+    ideal: "Ideal para profesionales, emprendedores y empresas sin trabajadores.",
+    popular: false,
+  },
+  {
+    num: "02",
+    nombre: "Pyme Gestión",
+    tagline: "Orden y acompañamiento contable",
+    desc: "Para empresas que buscan mayor orden y acompañamiento contable.",
+    precio: "$120.000",
+    nota: null,
+    icon: TrendingUp,
+    incluye: [
+      "Todo lo del plan Inicio Pyme",
+      "Pre balance básico",
+      "Revisión tributaria mensual",
+      "Análisis simple de PPM",
+      "Reunión semestral",
+    ],
+    destacado: "Incluye Declaración Renta Anual",
+    ideal: "Ideal para pymes en crecimiento con 1 a 3 trabajadores.",
+    popular: false,
+  },
+  {
+    num: "03",
+    nombre: "Pyme Pro",
+    tagline: "Análisis, control y apoyo estratégico",
+    desc: "Para empresas que buscan análisis, control y mayor apoyo estratégico.",
+    precio: "$180.000",
+    nota: null,
+    icon: PieChart,
+    incluye: [
+      "Todo lo del plan Pyme Gestión",
+      "Informe mensual resumido",
+      "Dashboard básico",
+      "Seguimiento tributario",
+      "Mayor acompañamiento y soporte",
+    ],
+    destacado: "Incluye Declaración Renta Anual",
+    ideal: "Ideal para pymes consolidadas con 4 a 7 trabajadores.",
+    popular: true,
+  },
+  {
+    num: "04",
+    nombre: "Empresas / Corporativo",
+    tagline: "Servicio personalizado según complejidad",
+    desc: "Para empresas con mayor volumen operacional y requerimientos específicos.",
+    precio: "A evaluar",
+    nota: "Cotización a medida",
+    icon: Building2,
+    incluye: [
+      "Evaluamos tu empresa y diseñamos un plan a la medida de tus necesidades.",
+    ],
+    destacado: null,
+    ideal: "Ideal para empresas con más de 7 trabajadores o alta complejidad.",
+    popular: false,
+  },
+];
+
+// Beneficios transversales (franja inferior de planes)
+const beneficios = [
+  { icon: MessageCircle, t: "Atención cercana", d: "Respuestas rápidas y acompañamiento constante." },
+  { icon: CalendarCheck, t: "Reuniones", d: "Reunión semestral incluida en planes Gestión y Pro." },
+  { icon: ShieldCheck, t: "Tranquilidad y confianza", d: "Nos ocupamos de tus números para que tú te enfoques en crecer." },
+  { icon: Phone, t: "¿Hablamos?", d: "Escríbenos y conversemos sobre el plan ideal para tu empresa." },
 ];
 
 /** Logo de cliente (acepta png/jpg/jpeg/webp); si no existe, muestra el nombre. */
@@ -190,6 +277,7 @@ export default function Home() {
 
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600 dark:text-slate-300">
             <a href="#servicios" className="hover:text-brand-600 transition-colors">Servicios</a>
+            <a href="#planes" className="hover:text-brand-600 transition-colors">Planes</a>
             <a href="#integraciones" className="hover:text-brand-600 transition-colors">Integraciones</a>
             <a href="#portal" className="hover:text-brand-600 transition-colors">Portal</a>
             <a href="#contacto" className="hover:text-brand-600 transition-colors">Contacto</a>
@@ -575,6 +663,126 @@ export default function Home() {
                 </ul>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* ============== 5b. PLANES MENSUALES ============== */}
+        <section id="planes" className="py-24 bg-slate-50 dark:bg-slate-950">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div data-reveal className="text-center max-w-2xl mx-auto mb-14">
+              <span className="inline-block text-xs font-semibold uppercase tracking-[0.18em] text-accent-600 mb-3">
+                Planes mensuales
+              </span>
+              <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-slate-900 dark:text-white mb-4">
+                Un plan para cada etapa de tu empresa
+              </h2>
+              <p className="text-lg text-slate-600 dark:text-slate-400">
+                Más que contabilidad, te entrego información clara para tomar{" "}
+                <span className="underline-gold">mejores decisiones</span> y pagar lo justo en impuestos.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
+              {planes.map((p) => (
+                <article
+                  key={p.num}
+                  data-reveal
+                  className={`card-lift glass-card rounded-2xl p-6 flex flex-col relative ${
+                    p.popular ? "ring-2 ring-accent-500 shadow-lg" : ""
+                  }`}
+                >
+                  {p.popular && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 bg-accent-500 text-white text-xs font-semibold px-3 py-1 rounded-full shadow">
+                      <Sparkles className="w-3.5 h-3.5" /> Recomendado
+                    </span>
+                  )}
+
+                  {/* Cabecera */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="grid place-items-center w-11 h-11 rounded-xl bg-brand-600 text-white shadow-sm flex-shrink-0">
+                      <p.icon className="w-5 h-5" />
+                    </span>
+                    <div>
+                      <p className="text-[11px] font-semibold tracking-wider text-slate-400">PLAN {p.num}</p>
+                      <h3 className="font-display text-lg font-bold text-slate-900 dark:text-white leading-tight">
+                        {p.nombre}
+                      </h3>
+                    </div>
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{p.tagline}</p>
+
+                  {/* Precio */}
+                  <div className="my-5">
+                    {p.nota ? (
+                      <>
+                        <span className="font-display text-3xl font-bold text-slate-900 dark:text-white">{p.precio}</span>
+                        <p className="text-sm font-medium text-accent-600 mt-1">{p.nota}</p>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-display text-4xl font-bold text-slate-900 dark:text-white">{p.precio}</span>
+                        <span className="text-sm font-medium text-slate-500"> + IVA</span>
+                        <p className="text-xs text-slate-400 mt-0.5">al mes</p>
+                      </>
+                    )}
+                  </div>
+
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-5">{p.desc}</p>
+
+                  {/* Incluye */}
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-3">Incluye</p>
+                  <ul className="space-y-2.5">
+                    {p.incluye.map((item) => (
+                      <li key={item} className="flex items-start gap-2.5 text-sm text-slate-600 dark:text-slate-300">
+                        <Check className="w-4 h-4 text-brand-500 mt-0.5 flex-shrink-0" strokeWidth={3} />
+                        {item}
+                      </li>
+                    ))}
+                    {p.destacado && (
+                      <li className="flex items-start gap-2.5 text-sm font-semibold text-accent-700 dark:text-accent-500">
+                        <Sparkles className="w-4 h-4 text-accent-500 mt-0.5 flex-shrink-0" />
+                        {p.destacado}
+                      </li>
+                    )}
+                  </ul>
+
+                  {/* Pie: ideal + CTA */}
+                  <div className="mt-auto pt-5 border-t border-slate-100 dark:border-slate-800">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">{p.ideal}</p>
+                    <a
+                      href="#contacto"
+                      className={`inline-flex w-full items-center justify-center gap-1.5 text-sm font-semibold py-2.5 px-4 rounded-lg transition-colors ${
+                        p.popular
+                          ? "btn-glow bg-brand-600 hover:bg-brand-700 text-white"
+                          : "border border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-900/20"
+                      }`}
+                    >
+                      {p.nota ? "Solicitar cotización" : "Contratar plan"}
+                      <ArrowRight className="w-4 h-4" />
+                    </a>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            {/* Franja de beneficios transversales */}
+            <div data-reveal className="mt-12 rounded-3xl bg-gradient-to-br from-brand-700 to-brand-800 p-6 md:p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {beneficios.map((b) => (
+                <div key={b.t} className="flex items-start gap-3">
+                  <span className="grid place-items-center w-10 h-10 rounded-xl bg-white/10 text-accent-400 flex-shrink-0">
+                    <b.icon className="w-5 h-5" />
+                  </span>
+                  <div>
+                    <p className="font-semibold text-white text-sm">{b.t}</p>
+                    <p className="text-brand-100 text-xs mt-0.5 leading-relaxed">{b.d}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p data-reveal className="mt-8 text-center text-xs text-slate-400 max-w-2xl mx-auto">
+              Valores referenciales sujetos a evaluación según cantidad de movimientos, trabajadores y complejidad operativa.
+            </p>
           </div>
         </section>
 
