@@ -1,8 +1,25 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Building2, UserPlus, CheckCircle2, AlertCircle, Loader2, Save, Eye, EyeOff } from "lucide-react";
+import {
+  Building2,
+  UserPlus,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Save,
+  Eye,
+  EyeOff,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  Users,
+  FolderOpen,
+  BarChart3,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { resolverCategoria } from "@/lib/categorias";
 
 interface Cliente {
   id: string;
@@ -11,9 +28,37 @@ interface Cliente {
   created_at: string;
 }
 
+interface DocLite {
+  id: string;
+  cliente_id: string;
+  nombre: string;
+  categoria: string;
+  anio: string;
+  mes: string;
+  size_bytes: number;
+  created_at: string;
+}
+
+interface Agg {
+  docsCount: number;
+  periodosCount: number;
+  usersCount: number;
+  lastUpload: string | null;
+  docs: DocLite[];
+}
+
+const formatSize = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+};
+
+const emptyAgg = (): Agg => ({ docsCount: 0, periodosCount: 0, usersCount: 0, lastUpload: null, docs: [] });
+
 export default function AdminClientesPage() {
   const [supabase] = useState(() => createClient());
   const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [aggs, setAggs] = useState<Record<string, Agg>>({});
   const [loading, setLoading] = useState(true);
 
   // Form: nueva empresa
@@ -32,21 +77,50 @@ export default function AdminClientesPage() {
   const [msgUser, setMsgUser] = useState<{ ok: boolean; text: string } | null>(null);
   const [showPwd, setShowPwd] = useState(false);
 
-  const cargarClientes = useCallback(async () => {
+  // Supervisión / eliminación de empresas
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [msgEmpresa, setMsgEmpresa] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const cargarTodo = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("clientes")
-      .select("id, razon_social, rut, created_at")
-      .order("razon_social");
-    const lista = (data as Cliente[]) ?? [];
+    const [{ data: cs }, { data: docs }, { data: mets }, { data: perfiles }] = await Promise.all([
+      supabase.from("clientes").select("id, razon_social, rut, created_at").order("razon_social"),
+      supabase
+        .from("documentos")
+        .select("id, cliente_id, nombre, categoria, anio, mes, size_bytes, created_at")
+        .order("created_at", { ascending: false }),
+      supabase.from("metricas_mensuales").select("id, cliente_id"),
+      supabase.from("perfiles").select("id, cliente_id"),
+    ]);
+
+    const lista = (cs as Cliente[]) ?? [];
     setClientes(lista);
     if (lista.length > 0 && !uClienteId) setUClienteId(lista[0].id);
+
+    // Agregados por empresa
+    const map: Record<string, Agg> = {};
+    for (const c of lista) map[c.id] = emptyAgg();
+    for (const d of (docs as DocLite[]) ?? []) {
+      const a = map[d.cliente_id];
+      if (!a) continue;
+      a.docsCount++;
+      a.docs.push(d);
+      if (!a.lastUpload || d.created_at > a.lastUpload) a.lastUpload = d.created_at;
+    }
+    for (const m of (mets as { cliente_id: string }[]) ?? []) {
+      if (map[m.cliente_id]) map[m.cliente_id].periodosCount++;
+    }
+    for (const p of (perfiles as { cliente_id: string | null }[]) ?? []) {
+      if (p.cliente_id && map[p.cliente_id]) map[p.cliente_id].usersCount++;
+    }
+    setAggs(map);
     setLoading(false);
   }, [supabase, uClienteId]);
 
   useEffect(() => {
-    cargarClientes();
-  }, [cargarClientes]);
+    cargarTodo();
+  }, [cargarTodo]);
 
   const handleCrearCliente = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +139,7 @@ export default function AdminClientesPage() {
     setMsgCliente({ ok: true, text: `Empresa "${razonSocial}" creada.` });
     setRazonSocial("");
     setRut("");
-    await cargarClientes();
+    await cargarTodo();
   };
 
   const handleCrearUsuario = async (e: React.FormEvent) => {
@@ -95,6 +169,43 @@ export default function AdminClientesPage() {
     setUEmail("");
     setUPassword("");
     setUNombre("");
+    await cargarTodo();
+  };
+
+  const handleEliminarEmpresa = async (c: Cliente) => {
+    const a = aggs[c.id] ?? emptyAgg();
+    const ok = window.confirm(
+      `¿Eliminar la empresa "${c.razon_social}"?\n\n` +
+        `Se borrarán PARA SIEMPRE:\n` +
+        `• ${a.docsCount} documento(s) y sus archivos del storage\n` +
+        `• ${a.periodosCount} período(s) de métricas\n` +
+        `• ${a.usersCount} usuario(s) / acceso(s) de esta empresa\n\n` +
+        `Esta acción no se puede deshacer.`
+    );
+    if (!ok) return;
+
+    setDeletingId(c.id);
+    setMsgEmpresa(null);
+
+    const res = await fetch("/api/admin/eliminar-empresa", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cliente_id: c.id }),
+    });
+    const json = await res.json();
+    setDeletingId(null);
+
+    if (!res.ok) {
+      setMsgEmpresa({ ok: false, text: json.error ?? "No se pudo eliminar la empresa." });
+      return;
+    }
+    if (expandedId === c.id) setExpandedId(null);
+    if (uClienteId === c.id) setUClienteId("");
+    setMsgEmpresa({
+      ok: true,
+      text: `Empresa "${c.razon_social}" eliminada — ${json.archivosBorrados} archivo(s) y ${json.usuariosBorrados} usuario(s).`,
+    });
+    await cargarTodo();
   };
 
   const inputCls =
@@ -117,7 +228,7 @@ export default function AdminClientesPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Clientes y usuarios</h1>
-        <p className="text-slate-600 dark:text-slate-400 mt-1">Crea empresas y da acceso a sus usuarios.</p>
+        <p className="text-slate-600 dark:text-slate-400 mt-1">Crea empresas, da acceso a sus usuarios y supervisa lo cargado.</p>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-8">
@@ -222,35 +333,132 @@ export default function AdminClientesPage() {
         </div>
       </div>
 
-      {/* Listado de empresas */}
+      {/* Supervisión por empresa */}
       <div className="glass-card rounded-2xl overflow-hidden">
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 flex justify-between items-center">
           <h2 className="font-semibold text-slate-800 dark:text-slate-200">Empresas registradas</h2>
           <span className="text-xs text-slate-500">{clientes.length} empresas</span>
         </div>
+
+        {msgEmpresa && <div className="p-4 border-b border-slate-200 dark:border-slate-800"><Mensaje m={msgEmpresa} /></div>}
+
         {loading ? (
           <div className="p-10 text-center text-sm text-slate-500">Cargando…</div>
         ) : clientes.length === 0 ? (
           <div className="p-10 text-center text-sm text-slate-500">Aún no hay empresas. Crea la primera arriba.</div>
         ) : (
-          <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
-            <thead className="bg-slate-50/60 dark:bg-slate-950/40">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Razón social</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">RUT</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Alta</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-              {clientes.map((c) => (
-                <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                  <td className="px-6 py-3 text-sm font-medium text-slate-700 dark:text-slate-300">{c.razon_social}</td>
-                  <td className="px-6 py-3 text-sm text-slate-500">{c.rut}</td>
-                  <td className="px-6 py-3 text-right text-xs text-slate-500">{new Date(c.created_at).toLocaleDateString("es-CL")}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800/50">
+            {clientes.map((c) => {
+              const a = aggs[c.id] ?? emptyAgg();
+              const abierto = expandedId === c.id;
+              return (
+                <li key={c.id}>
+                  <div className="flex items-center gap-4 px-4 sm:px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                    {/* Expandir */}
+                    <button
+                      onClick={() => setExpandedId(abierto ? null : c.id)}
+                      aria-label={abierto ? "Ocultar documentos" : "Ver documentos"}
+                      className="flex-shrink-0 grid place-items-center w-7 h-7 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      {abierto ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    </button>
+
+                    {/* Identidad */}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{c.razon_social}</p>
+                      <p className="text-xs text-slate-500">
+                        {c.rut} · alta {new Date(c.created_at).toLocaleDateString("es-CL")}
+                      </p>
+                    </div>
+
+                    {/* Métricas resumidas por empresa */}
+                    <div className="hidden md:flex items-center gap-5 text-xs text-slate-500">
+                      <span className="inline-flex items-center gap-1.5" title="Documentos cargados">
+                        <FolderOpen className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">{a.docsCount}</span> docs
+                      </span>
+                      <span className="inline-flex items-center gap-1.5" title="Períodos de métricas">
+                        <BarChart3 className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">{a.periodosCount}</span> períodos
+                      </span>
+                      <span className="inline-flex items-center gap-1.5" title="Usuarios con acceso">
+                        <Users className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">{a.usersCount}</span> usuarios
+                      </span>
+                      <span className="w-28 text-right" title="Última carga de documento">
+                        {a.lastUpload ? `Últ. ${new Date(a.lastUpload).toLocaleDateString("es-CL")}` : "Sin cargas"}
+                      </span>
+                    </div>
+
+                    {/* Eliminar */}
+                    <button
+                      onClick={() => handleEliminarEmpresa(c)}
+                      disabled={deletingId === c.id}
+                      title="Eliminar empresa"
+                      aria-label={`Eliminar ${c.razon_social}`}
+                      className="flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-60"
+                    >
+                      {deletingId === c.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    </button>
+                  </div>
+
+                  {/* Detalle expandible: documentos de esta empresa */}
+                  {abierto && (
+                    <div className="bg-slate-50/70 dark:bg-slate-950/30 px-4 sm:px-6 py-4 border-t border-slate-100 dark:border-slate-800/50">
+                      {/* Resumen también visible en móvil */}
+                      <div className="md:hidden mb-3 flex flex-wrap gap-3 text-xs text-slate-500">
+                        <span>{a.docsCount} docs</span>
+                        <span>·</span>
+                        <span>{a.periodosCount} períodos</span>
+                        <span>·</span>
+                        <span>{a.usersCount} usuarios</span>
+                      </div>
+
+                      {a.docs.length === 0 ? (
+                        <p className="text-sm text-slate-500">Esta empresa aún no tiene documentos cargados.</p>
+                      ) : (
+                        <div className="max-h-72 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-800">
+                          <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                            <thead className="bg-white/60 dark:bg-slate-900/40 sticky top-0">
+                              <tr>
+                                <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Archivo</th>
+                                <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Categoría</th>
+                                <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Período</th>
+                                <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Fecha</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                              {a.docs.map((d) => {
+                                const cat = resolverCategoria(d.categoria);
+                                return (
+                                  <tr key={d.id} className="hover:bg-white/60 dark:hover:bg-slate-800/30">
+                                    <td className="px-4 py-2">
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <FileText className="w-3.5 h-3.5 flex-shrink-0 text-slate-400" />
+                                        <span className="truncate text-slate-700 dark:text-slate-300">{d.nombre}</span>
+                                        <span className="flex-shrink-0 text-xs text-slate-400">{formatSize(d.size_bytes)}</span>
+                                      </div>
+                                    </td>
+                                    <td className="px-4 py-2">
+                                      <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${cat.chipCls}`}>{cat.label}</span>
+                                    </td>
+                                    <td className="px-4 py-2 whitespace-nowrap text-xs text-slate-500">{d.anio} / {d.mes}</td>
+                                    <td className="px-4 py-2 whitespace-nowrap text-right text-xs text-slate-500">
+                                      {new Date(d.created_at).toLocaleDateString("es-CL")}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
     </div>

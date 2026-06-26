@@ -52,7 +52,8 @@ export default function AdminDashboard() {
   const [category, setCategory] = useState("Financiero");
   const [month, setMonth] = useState("Marzo");
   const [year, setYear] = useState("2025");
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [batch, setBatch] = useState<{ done: number; total: number } | null>(null);
 
   // Cargar la lista de documentos (con el nombre de la empresa)
   const cargarDocumentos = useCallback(async () => {
@@ -82,8 +83,8 @@ export default function AdminDashboard() {
   }, [supabase, cargarDocumentos]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+    if (e.target.files) {
+      setFiles(Array.from(e.target.files));
     }
   };
 
@@ -92,8 +93,8 @@ export default function AdminDashboard() {
     setErrorMsg("");
     setSuccessMsg("");
 
-    if (!file) {
-      setErrorMsg("Selecciona un archivo antes de guardar.");
+    if (files.length === 0) {
+      setErrorMsg("Selecciona al menos un archivo antes de guardar.");
       return;
     }
     if (!clienteId) {
@@ -102,46 +103,69 @@ export default function AdminDashboard() {
     }
 
     setUploading(true);
+    setBatch({ done: 0, total: files.length });
 
-    // 1) Subir el archivo real a Storage en la carpeta del cliente: {cliente_id}/{timestamp}-{nombre}
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const storagePath = `${clienteId}/${Date.now()}-${safeName}`;
+    const fallidos: string[] = [];
+    let subidos = 0;
 
-    const { error: uploadError } = await supabase.storage
-      .from("documentos")
-      .upload(storagePath, file, { cacheControl: "3600", upsert: false });
+    // Subimos los archivos uno a uno, reportando el avance del lote.
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
 
-    if (uploadError) {
-      setErrorMsg(`Error al subir el archivo: ${uploadError.message}`);
-      setUploading(false);
-      return;
+      // 1) Subir el archivo real a Storage: {cliente_id}/{timestamp}-{i}-{nombre}
+      //    El índice evita colisiones cuando varios archivos comparten el mismo milisegundo.
+      const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const storagePath = `${clienteId}/${Date.now()}-${i}-${safeName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("documentos")
+        .upload(storagePath, f, { cacheControl: "3600", upsert: false });
+
+      if (uploadError) {
+        fallidos.push(`${f.name} (${uploadError.message})`);
+        setBatch({ done: i + 1, total: files.length });
+        continue;
+      }
+
+      // 2) Registrar el documento en la base de datos
+      const { error: insertError } = await supabase.from("documentos").insert({
+        cliente_id: clienteId,
+        nombre: f.name,
+        categoria: category,
+        anio: year,
+        mes: month,
+        storage_path: storagePath,
+        size_bytes: f.size,
+      });
+
+      if (insertError) {
+        // Si falla el registro, limpiamos el archivo huérfano del Storage
+        await supabase.storage.from("documentos").remove([storagePath]);
+        fallidos.push(`${f.name} (${insertError.message})`);
+      } else {
+        subidos++;
+      }
+      setBatch({ done: i + 1, total: files.length });
     }
 
-    // 2) Registrar el documento en la base de datos
-    const { error: insertError } = await supabase.from("documentos").insert({
-      cliente_id: clienteId,
-      nombre: file.name,
-      categoria: category,
-      anio: year,
-      mes: month,
-      storage_path: storagePath,
-      size_bytes: file.size,
-    });
-
-    if (insertError) {
-      // Si falla el registro, limpiamos el archivo huérfano del Storage
-      await supabase.storage.from("documentos").remove([storagePath]);
-      setErrorMsg(`Error al registrar el documento: ${insertError.message}`);
-      setUploading(false);
-      return;
-    }
-
-    setSuccessMsg(`¡"${file.name}" se subió correctamente y ya es visible para el cliente!`);
-    setFile(null);
-    if (formRef.current) formRef.current.reset();
     setUploading(false);
+    setBatch(null);
+    setFiles([]);
+    if (formRef.current) formRef.current.reset();
     await cargarDocumentos();
-    setTimeout(() => setSuccessMsg(""), 6000);
+
+    if (subidos > 0) {
+      const plural = subidos === 1 ? "" : "s";
+      setSuccessMsg(
+        `Se ${subidos === 1 ? "subió" : "subieron"} ${subidos} de ${files.length} archivo${
+          files.length === 1 ? "" : "s"
+        }${fallidos.length === 0 ? ` correctamente y ya ${subidos === 1 ? "es visible" : "son visibles"} para el cliente.` : `.`}`
+      );
+      if (fallidos.length === 0) setTimeout(() => setSuccessMsg(""), 6000);
+    }
+    if (fallidos.length > 0) {
+      setErrorMsg(`No se pudieron subir ${fallidos.length} archivo${fallidos.length === 1 ? "" : "s"}: ${fallidos.join(" · ")}`);
+    }
   };
 
   const handleDelete = async (doc: Documento) => {
@@ -181,7 +205,7 @@ export default function AdminDashboard() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Subir Documentos</h1>
         <p className="text-slate-600 dark:text-slate-400 mt-1">
-          Carga nuevos archivos a las carpetas de tus clientes.
+          Carga uno o varios archivos a la vez a la carpeta de un cliente.
         </p>
       </div>
 
@@ -253,21 +277,43 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Archivo PDF/ZIP</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Archivos PDF/ZIP</label>
                 <label
                   htmlFor="file-upload"
                   className="mt-1 flex flex-col items-center justify-center gap-2 px-6 py-6 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl cursor-pointer hover:border-brand-400 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors text-center"
                 >
                   <UploadCloud className="w-9 h-9 text-slate-400" />
-                  <span className="text-sm font-medium text-brand-600">Sube un archivo</span>
-                  <span className="text-xs text-slate-400">PDF o ZIP hasta 50 MB</span>
-                  {file && (
+                  <span className="text-sm font-medium text-brand-600">Sube uno o varios archivos</span>
+                  <span className="text-xs text-slate-400">PDF o ZIP · hasta 50 MB c/u · selección múltiple</span>
+                  {files.length > 0 && (
                     <span className="mt-1 text-xs font-semibold text-slate-900 dark:text-white">
-                      {file.name} · {formatSize(file.size)}
+                      {files.length} archivo{files.length === 1 ? "" : "s"} · {formatSize(files.reduce((a, f) => a + f.size, 0))}
                     </span>
                   )}
-                  <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={handleFileChange} />
+                  <input
+                    id="file-upload"
+                    name="file-upload"
+                    type="file"
+                    multiple
+                    accept=".pdf,.zip,application/pdf,application/zip"
+                    className="sr-only"
+                    onChange={handleFileChange}
+                  />
                 </label>
+
+                {files.length > 0 && (
+                  <ul className="mt-2 max-h-32 overflow-y-auto space-y-1 text-xs">
+                    {files.map((f, i) => (
+                      <li key={`${f.name}-${i}`} className="flex items-center justify-between gap-2 text-slate-500">
+                        <span className="flex items-center gap-1.5 truncate">
+                          <FileText className="w-3.5 h-3.5 flex-shrink-0 text-slate-400" />
+                          <span className="truncate">{f.name}</span>
+                        </span>
+                        <span className="flex-shrink-0">{formatSize(f.size)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
               <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
@@ -279,12 +325,12 @@ export default function AdminDashboard() {
                   {uploading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Subiendo…
+                      {batch ? `Subiendo ${batch.done}/${batch.total}…` : "Subiendo…"}
                     </>
                   ) : (
                     <>
                       <Save className="w-4 h-4" />
-                      Guardar documento
+                      {files.length > 1 ? `Guardar ${files.length} documentos` : "Guardar documento"}
                     </>
                   )}
                 </button>
