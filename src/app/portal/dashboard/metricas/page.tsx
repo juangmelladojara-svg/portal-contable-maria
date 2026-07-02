@@ -112,8 +112,8 @@ export default function MetricasPage() {
         { label: "Total ingresos", value: data.ingresos, color: "bg-emerald-500", icon: TrendingUp },
         { label: "Total egresos", value: data.gastos, color: "bg-amber-500", icon: TrendingDown },
         { label: "Total remuneraciones", value: data.remuneraciones, color: "bg-orange-500", icon: Users },
-        { label: "IVA a pagar", value: data.iva, color: "bg-red-500", icon: ReceiptText },
-        { label: "PPM acumulado", value: data.ppm, color: "bg-brand-500", icon: Landmark },
+        { label: "Impuesto a pagar", value: data.iva, color: "bg-red-500", icon: ReceiptText },
+        { label: "PPM", value: data.ppm, color: "bg-brand-500", icon: Landmark },
       ]
     : [];
   const maxVector = Math.max(1, ...vectores.map((v) => v.value));
@@ -130,11 +130,11 @@ export default function MetricasPage() {
 
   const kpiCards = data
     ? [
-        { label: "PPM acumulado", value: data.ppm, icon: Landmark, accent: "text-brand-600", bar: "bg-brand-500" },
+        { label: "PPM", value: data.ppm, icon: Landmark, accent: "text-brand-600", bar: "bg-brand-500" },
         { label: "Total ingresos", value: data.ingresos, icon: TrendingUp, accent: "text-emerald-600", bar: "bg-emerald-500" },
         { label: "Total egresos", value: data.gastos, icon: TrendingDown, accent: "text-amber-600", bar: "bg-amber-500" },
         { label: "Total remuneraciones", value: data.remuneraciones, icon: Users, accent: "text-orange-600", bar: "bg-orange-500" },
-        { label: "IVA a pagar", value: data.iva, icon: ReceiptText, accent: "text-red-600", bar: "bg-red-500" },
+        { label: "Impuesto a pagar", value: data.iva, icon: ReceiptText, accent: "text-red-600", bar: "bg-red-500" },
       ]
     : [];
 

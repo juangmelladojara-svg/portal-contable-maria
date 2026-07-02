@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, Fragment } from "react";
 import { BarChart3, Save, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import CurrencyInput from "@/components/CurrencyInput";
 
 interface Cliente {
   id: string;
@@ -60,7 +61,7 @@ export default function AdminMetricasPage() {
 
   const [clienteId, setClienteId] = useState("");
   const [mes, setMes] = useState("03");
-  const [anio, setAnio] = useState("2025");
+  const [anio, setAnio] = useState("2026");
   const [ingresos, setIngresos] = useState("");
   const [gastos, setGastos] = useState("");
   const [iva, setIva] = useState("");
@@ -188,7 +189,7 @@ export default function AdminMetricasPage() {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Año</label>
                   <select value={anio} onChange={(e) => setAnio(e.target.value)} className={inputCls}>
-                    {["2024", "2025", "2026"].map((y) => (
+                    {["2026", "2027", "2028"].map((y) => (
                       <option key={y} value={y}>{y}</option>
                     ))}
                   </select>
@@ -197,23 +198,23 @@ export default function AdminMetricasPage() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Ingresos (CLP)</label>
-                <input type="number" min="0" value={ingresos} onChange={(e) => setIngresos(e.target.value)} className={inputCls} placeholder="15500000" />
+                <CurrencyInput value={ingresos} onChange={setIngresos} className={inputCls} placeholder="$15.500.000" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Gastos operativos (CLP)</label>
-                <input type="number" min="0" value={gastos} onChange={(e) => setGastos(e.target.value)} className={inputCls} placeholder="8200000" />
+                <CurrencyInput value={gastos} onChange={setGastos} className={inputCls} placeholder="$8.200.000" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Remuneraciones (CLP)</label>
-                <input type="number" min="0" value={remuneraciones} onChange={(e) => setRemuneraciones(e.target.value)} className={inputCls} placeholder="4500000" />
+                <CurrencyInput value={remuneraciones} onChange={setRemuneraciones} className={inputCls} placeholder="$4.500.000" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">IVA a pagar (CLP)</label>
-                <input type="number" min="0" value={iva} onChange={(e) => setIva(e.target.value)} className={inputCls} placeholder="1387000" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Impuesto a pagar (CLP)</label>
+                <CurrencyInput value={iva} onChange={setIva} className={inputCls} placeholder="$1.387.000" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">PPM acumulado (CLP)</label>
-                <input type="number" min="0" value={ppm} onChange={(e) => setPpm(e.target.value)} className={inputCls} placeholder="620000" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">PPM (CLP)</label>
+                <CurrencyInput value={ppm} onChange={setPpm} className={inputCls} placeholder="$620.000" />
               </div>
 
               <div className="pt-4 mt-2 border-t border-slate-200 dark:border-slate-800">
@@ -226,7 +227,7 @@ export default function AdminMetricasPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Vigentes (CLP)</label>
-                      <input type="number" min="0" value={vigTotal} onChange={(e) => setVigTotal(e.target.value)} className={inputCls} placeholder="9800000" />
+                      <CurrencyInput value={vigTotal} onChange={setVigTotal} className={inputCls} placeholder="$9.800.000" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -236,7 +237,7 @@ export default function AdminMetricasPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Finiquitos (CLP)</label>
-                      <input type="number" min="0" value={finTotal} onChange={(e) => setFinTotal(e.target.value)} className={inputCls} placeholder="850000" />
+                      <CurrencyInput value={finTotal} onChange={setFinTotal} className={inputCls} placeholder="$850.000" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -246,7 +247,7 @@ export default function AdminMetricasPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nuevos (CLP)</label>
-                      <input type="number" min="0" value={nuevTotal} onChange={(e) => setNuevTotal(e.target.value)} className={inputCls} placeholder="1600000" />
+                      <CurrencyInput value={nuevTotal} onChange={setNuevTotal} className={inputCls} placeholder="$1.600.000" />
                     </div>
                   </div>
                 </div>
@@ -290,6 +291,7 @@ export default function AdminMetricasPage() {
               const tIngresos = filtradas.reduce((s, r) => s + r.ingresos, 0);
               const tGastos = filtradas.reduce((s, r) => s + r.gastos + r.remuneraciones, 0);
               const tUtil = tIngresos - tGastos;
+              const tPpm = filtradas.reduce((s, r) => s + r.ppm, 0);
 
               if (loading) return <div className="p-10 text-center text-sm text-slate-500">Cargando…</div>;
               if (rows.length === 0) return <div className="p-10 text-center text-sm text-slate-500">Aún no hay métricas cargadas.</div>;
@@ -298,7 +300,7 @@ export default function AdminMetricasPage() {
               return (
                 <>
                   {/* Totales del conjunto filtrado */}
-                  <div className="grid grid-cols-3 divide-x divide-slate-200 dark:divide-slate-800 border-b border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/30">
+                  <div className="grid grid-cols-4 divide-x divide-slate-200 dark:divide-slate-800 border-b border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/30">
                     <div className="p-3 text-center">
                       <p className="text-[11px] uppercase tracking-wider text-slate-400">Ingresos ({filtradas.length})</p>
                       <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{formatCLP(tIngresos)}</p>
@@ -310,6 +312,10 @@ export default function AdminMetricasPage() {
                     <div className="p-3 text-center">
                       <p className="text-[11px] uppercase tracking-wider text-slate-400">Utilidad</p>
                       <p className={`text-sm font-semibold ${tUtil >= 0 ? "text-green-600" : "text-red-600"}`}>{formatCLP(tUtil)}</p>
+                    </div>
+                    <div className="p-3 text-center">
+                      <p className="text-[11px] uppercase tracking-wider text-slate-400">PPM</p>
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{formatCLP(tPpm)}</p>
                     </div>
                   </div>
 
@@ -351,8 +357,8 @@ export default function AdminMetricasPage() {
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3 text-sm">
                                       <Kpi label="Gastos operativos" value={formatCLP(r.gastos)} />
                                       <Kpi label="Remuneraciones" value={formatCLP(r.remuneraciones)} />
-                                      <Kpi label="IVA a pagar" value={formatCLP(r.iva)} />
-                                      <Kpi label="PPM acumulado" value={formatCLP(r.ppm)} />
+                                      <Kpi label="Impuesto a pagar" value={formatCLP(r.iva)} />
+                                      <Kpi label="PPM" value={formatCLP(r.ppm)} />
                                       <Kpi label="Contratos vigentes" value={`${r.contratos_vigentes_cant} · ${formatCLP(r.contratos_vigentes_total)}`} />
                                       <Kpi label="Finiquitos del mes" value={`${r.finiquitos_cant} · ${formatCLP(r.finiquitos_total)}`} />
                                       <Kpi label="Nuevos contratos" value={`${r.nuevos_contratos_cant} · ${formatCLP(r.nuevos_contratos_total)}`} />

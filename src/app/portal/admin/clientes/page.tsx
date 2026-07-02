@@ -17,6 +17,8 @@ import {
   Users,
   FolderOpen,
   BarChart3,
+  Pencil,
+  X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { resolverCategoria } from "@/lib/categorias";
@@ -81,6 +83,12 @@ export default function AdminClientesPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [msgEmpresa, setMsgEmpresa] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // Edición de empresa (razón social / RUT)
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editRazonSocial, setEditRazonSocial] = useState("");
+  const [editRut, setEditRut] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const cargarTodo = useCallback(async () => {
     setLoading(true);
@@ -205,6 +213,39 @@ export default function AdminClientesPage() {
       ok: true,
       text: `Empresa "${c.razon_social}" eliminada — ${json.archivosBorrados} archivo(s) y ${json.usuariosBorrados} usuario(s).`,
     });
+    await cargarTodo();
+  };
+
+  const handleEmpezarEdicion = (c: Cliente) => {
+    setEditingId(c.id);
+    setEditRazonSocial(c.razon_social);
+    setEditRut(c.rut);
+    setMsgEmpresa(null);
+  };
+
+  const handleCancelarEdicion = () => {
+    setEditingId(null);
+    setEditRazonSocial("");
+    setEditRut("");
+  };
+
+  const handleGuardarEdicion = async (c: Cliente) => {
+    if (!editRazonSocial.trim() || !editRut.trim()) {
+      setMsgEmpresa({ ok: false, text: "Completa razón social y RUT." });
+      return;
+    }
+    setSavingEdit(true);
+    const { error } = await supabase
+      .from("clientes")
+      .update({ razon_social: editRazonSocial.trim(), rut: editRut.trim() })
+      .eq("id", c.id);
+    setSavingEdit(false);
+    if (error) {
+      setMsgEmpresa({ ok: false, text: `Error: ${error.message}` });
+      return;
+    }
+    setMsgEmpresa({ ok: true, text: `Empresa actualizada correctamente.` });
+    setEditingId(null);
     await cargarTodo();
   };
 
@@ -351,6 +392,7 @@ export default function AdminClientesPage() {
             {clientes.map((c) => {
               const a = aggs[c.id] ?? emptyAgg();
               const abierto = expandedId === c.id;
+              const editando = editingId === c.id;
               return (
                 <li key={c.id}>
                   <div className="flex items-center gap-4 px-4 sm:px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/30">
@@ -364,42 +406,97 @@ export default function AdminClientesPage() {
                     </button>
 
                     {/* Identidad */}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{c.razon_social}</p>
-                      <p className="text-xs text-slate-500">
-                        {c.rut} · alta {new Date(c.created_at).toLocaleDateString("es-CL")}
-                      </p>
-                    </div>
+                    {editando ? (
+                      <div className="min-w-0 flex-1 grid grid-cols-2 gap-2">
+                        <input
+                          value={editRazonSocial}
+                          onChange={(e) => setEditRazonSocial(e.target.value)}
+                          className={`${inputCls} py-1.5`}
+                          placeholder="Razón social"
+                          autoFocus
+                        />
+                        <input
+                          value={editRut}
+                          onChange={(e) => setEditRut(e.target.value)}
+                          className={`${inputCls} py-1.5`}
+                          placeholder="RUT"
+                        />
+                      </div>
+                    ) : (
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{c.razon_social}</p>
+                        <p className="text-xs text-slate-500">
+                          {c.rut} · alta {new Date(c.created_at).toLocaleDateString("es-CL")}
+                        </p>
+                      </div>
+                    )}
 
                     {/* Métricas resumidas por empresa */}
-                    <div className="hidden md:flex items-center gap-5 text-xs text-slate-500">
-                      <span className="inline-flex items-center gap-1.5" title="Documentos cargados">
-                        <FolderOpen className="w-3.5 h-3.5 text-slate-400" />
-                        <span className="font-semibold text-slate-700 dark:text-slate-300">{a.docsCount}</span> docs
-                      </span>
-                      <span className="inline-flex items-center gap-1.5" title="Períodos de métricas">
-                        <BarChart3 className="w-3.5 h-3.5 text-slate-400" />
-                        <span className="font-semibold text-slate-700 dark:text-slate-300">{a.periodosCount}</span> períodos
-                      </span>
-                      <span className="inline-flex items-center gap-1.5" title="Usuarios con acceso">
-                        <Users className="w-3.5 h-3.5 text-slate-400" />
-                        <span className="font-semibold text-slate-700 dark:text-slate-300">{a.usersCount}</span> usuarios
-                      </span>
-                      <span className="w-28 text-right" title="Última carga de documento">
-                        {a.lastUpload ? `Últ. ${new Date(a.lastUpload).toLocaleDateString("es-CL")}` : "Sin cargas"}
-                      </span>
-                    </div>
+                    {!editando && (
+                      <div className="hidden md:flex items-center gap-5 text-xs text-slate-500">
+                        <span className="inline-flex items-center gap-1.5" title="Documentos cargados">
+                          <FolderOpen className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">{a.docsCount}</span> docs
+                        </span>
+                        <span className="inline-flex items-center gap-1.5" title="Períodos de métricas">
+                          <BarChart3 className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">{a.periodosCount}</span> períodos
+                        </span>
+                        <span className="inline-flex items-center gap-1.5" title="Usuarios con acceso">
+                          <Users className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">{a.usersCount}</span> usuarios
+                        </span>
+                        <span className="w-28 text-right" title="Última carga de documento">
+                          {a.lastUpload ? `Últ. ${new Date(a.lastUpload).toLocaleDateString("es-CL")}` : "Sin cargas"}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Editar */}
+                    {editando ? (
+                      <div className="flex-shrink-0 flex items-center gap-1">
+                        <button
+                          onClick={() => handleGuardarEdicion(c)}
+                          disabled={savingEdit}
+                          title="Guardar cambios"
+                          aria-label={`Guardar ${c.razon_social}`}
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/40 transition-colors disabled:opacity-60"
+                        >
+                          {savingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={handleCancelarEdicion}
+                          disabled={savingEdit}
+                          title="Cancelar"
+                          aria-label="Cancelar edición"
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-60"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleEmpezarEdicion(c)}
+                        title="Editar nombre / RUT"
+                        aria-label={`Editar ${c.razon_social}`}
+                        className="flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/40 transition-colors"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    )}
 
                     {/* Eliminar */}
-                    <button
-                      onClick={() => handleEliminarEmpresa(c)}
-                      disabled={deletingId === c.id}
-                      title="Eliminar empresa"
-                      aria-label={`Eliminar ${c.razon_social}`}
-                      className="flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-60"
-                    >
-                      {deletingId === c.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                    </button>
+                    {!editando && (
+                      <button
+                        onClick={() => handleEliminarEmpresa(c)}
+                        disabled={deletingId === c.id}
+                        title="Eliminar empresa"
+                        aria-label={`Eliminar ${c.razon_social}`}
+                        className="flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-60"
+                      >
+                        {deletingId === c.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                      </button>
+                    )}
                   </div>
 
                   {/* Detalle expandible: documentos de esta empresa */}
