@@ -339,12 +339,12 @@ export default function Home() {
         scrollTrigger: { trigger: ".bento-bars", start: "top 90%" },
       });
 
-      // Gráfico de 12 meses: leve oleaje ligado al progreso del scroll (dinamismo continuo)
+      // Gráfico de 12 meses: brillo que recorre las barras con el scroll (dinamismo
+      // sin tocar tamaño/posición, así la base del gráfico nunca se desalinea).
       gsap.utils.toArray<HTMLElement>(".bento-bar").forEach((bar, i) => {
         gsap.to(bar, {
-          y: i % 2 === 0 ? -10 : 10,
+          filter: i % 2 === 0 ? "brightness(1.18)" : "brightness(0.94)",
           ease: "none",
-          force3D: true,
           scrollTrigger: {
             trigger: ".bento-bars",
             start: "top bottom",
