@@ -23,12 +23,14 @@ import {
   Landmark,
   Building2,
   Server,
-  MapPin,
   Mail,
   Phone,
   Sparkles,
 } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
+
+// Página de reservas de Google Calendar (Ajustes → Programación de citas)
+const GOOGLE_CALENDAR_URL = "https://calendar.app.google/st8J2gHf42X8AAk89";
 
 // Logos reales de clientes — guardar cada archivo en public/clientes/<file>.png
 const clientes = [
@@ -541,7 +543,9 @@ export default function Home() {
               acceso clientes
             </Link>
             <a
-              href="#contacto"
+              href={GOOGLE_CALENDAR_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="btn-glow inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold py-2 px-3.5 sm:py-2.5 sm:px-5 rounded-full whitespace-nowrap"
             >
               <span className="sm:hidden">agenda</span>
@@ -654,7 +658,9 @@ export default function Home() {
             </p>
             <div className="hero-sub mt-7 flex flex-wrap items-center gap-4">
               <a
-                href="#contacto"
+                href={GOOGLE_CALENDAR_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="btn-glow inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-base font-semibold py-3.5 px-7 rounded-full"
               >
                 <CalendarCheck className="w-5 h-5" />
@@ -1149,7 +1155,9 @@ export default function Home() {
             </p>
             <div data-reveal className="mt-10 flex flex-wrap gap-4">
               <a
-                href="#contacto"
+                href={GOOGLE_CALENDAR_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="btn-glow inline-flex items-center gap-2 bg-white text-brand-700 text-base font-semibold py-3.5 px-7 rounded-full"
               >
                 <CalendarCheck className="w-5 h-5" />
@@ -1196,16 +1204,19 @@ export default function Home() {
             <h4 className="text-white font-semibold uppercase tracking-wide text-sm mb-4">Contacto</h4>
             <ul className="space-y-2.5 text-sm">
               <li className="flex items-center gap-2 min-w-0">
-                <MapPin className="w-4 h-4 text-brand-400 flex-shrink-0" />
-                <span className="break-words">Oficina Central, Ciudad</span>
-              </li>
-              <li className="flex items-center gap-2 min-w-0">
                 <Mail className="w-4 h-4 text-brand-400 flex-shrink-0" />
                 <span className="break-all">contabilidad@mmellado.com</span>
               </li>
               <li className="flex items-center gap-2 min-w-0">
                 <Phone className="w-4 h-4 text-brand-400 flex-shrink-0" />
-                <span className="break-words">+56 9 1234 5678</span>
+                <a
+                  href="https://wa.me/56958508710"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="break-words hover:text-white transition-colors"
+                >
+                  +56 9 5850 8710
+                </a>
               </li>
             </ul>
           </div>
