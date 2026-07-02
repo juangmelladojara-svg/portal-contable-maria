@@ -210,17 +210,19 @@ function ClientLogo({ c }: { c: { name: string; file: string } }) {
       src={src}
       alt={c.name}
       title={c.name}
-      className="h-10 md:h-12 w-auto object-contain grayscale opacity-60 hover:opacity-100 hover:grayscale-0 transition duration-300 shrink-0"
+      className="h-14 md:h-20 w-auto object-contain grayscale opacity-60 hover:opacity-100 hover:grayscale-0 transition duration-300 shrink-0"
     />
   );
 }
 
 /** Header de sección asimétrico: título grande a la izquierda, lead angosto a la derecha. */
-function SectionHead({ tag, title, lead }: { tag: string; title: string; lead: string }) {
+function SectionHead({ tag, title, lead }: { tag?: string; title: string; lead: string }) {
   return (
     <div data-reveal className="grid lg:grid-cols-12 gap-6 lg:gap-8 items-end mb-12 lg:mb-16">
       <div className="lg:col-span-8">
-        <span className="block text-sm font-medium tracking-wide text-accent-600 mb-4">( {tag} )</span>
+        {tag && (
+          <span className="block text-sm font-medium tracking-wide text-accent-600 mb-4">( {tag} )</span>
+        )}
         <h2 className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.04] text-slate-900 dark:text-white text-balance">
           {title}
         </h2>
@@ -335,6 +337,21 @@ export default function Home() {
         force3D: true,
         stagger: 0.035,
         scrollTrigger: { trigger: ".bento-bars", start: "top 90%" },
+      });
+
+      // Gráfico de 12 meses: leve oleaje ligado al progreso del scroll (dinamismo continuo)
+      gsap.utils.toArray<HTMLElement>(".bento-bar").forEach((bar, i) => {
+        gsap.to(bar, {
+          y: i % 2 === 0 ? -10 : 10,
+          ease: "none",
+          force3D: true,
+          scrollTrigger: {
+            trigger: ".bento-bars",
+            start: "top bottom",
+            end: "bottom top",
+            scrub: 0.6,
+          },
+        });
       });
 
       // Impuestos: las casillas se auto-marcan en secuencia
@@ -508,11 +525,11 @@ export default function Home() {
           <BrandMark href="/" />
 
           <nav className="hidden lg:flex items-center gap-8 text-sm font-medium text-slate-600 dark:text-slate-300">
-            <a href="#servicios" className="hover:text-brand-600 transition-colors">servicios</a>
-            <a href="#planes" className="hover:text-brand-600 transition-colors">planes</a>
-            <a href="#integraciones" className="hover:text-brand-600 transition-colors">integraciones</a>
-            <a href="#portal" className="hover:text-brand-600 transition-colors">portal</a>
-            <a href="#contacto" className="hover:text-brand-600 transition-colors">contacto</a>
+            <a href="#servicios" className="hover:text-brand-600 transition-colors">Servicios</a>
+            <a href="#planes" className="hover:text-brand-600 transition-colors">Planes</a>
+            <a href="#integraciones" className="hover:text-brand-600 transition-colors">Integraciones</a>
+            <a href="#portal" className="hover:text-brand-600 transition-colors">Portal</a>
+            <a href="#contacto" className="hover:text-brand-600 transition-colors">Contacto</a>
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
@@ -603,7 +620,7 @@ export default function Home() {
             <h1 className="hero-par relative font-display font-semibold tracking-tight text-slate-900 dark:text-white leading-[0.98] text-[clamp(2.5rem,9.5vw,8.25rem)]">
               {/* Cada línea emerge de su propia máscara */}
               <span className="block overflow-hidden">
-                <span className="hero-line block">tu contabilidad</span>
+                <span className="hero-line block">Tu contabilidad</span>
               </span>
               <span className="block overflow-hidden pb-[0.18em] -mb-[0.12em]">
                 <span className="hero-line block">
@@ -718,7 +735,6 @@ export default function Home() {
               {/* Header compacto para caber en la escena anclada */}
               <div data-reveal className="grid lg:grid-cols-12 gap-4 lg:gap-8 items-end mb-8">
                 <div className="lg:col-span-8">
-                  <span className="block text-sm font-medium tracking-wide text-accent-600 mb-3">( el portal )</span>
                   <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight leading-[1.04] text-slate-900 dark:text-white text-balance">
                     conoce el portal por dentro
                   </h2>
@@ -733,13 +749,13 @@ export default function Home() {
                 {/* Descripción de la vista activa (columna lateral izquierda) */}
                 <p
                   key={portalTab}
-                  className="portal-desc order-2 lg:order-1 lg:col-span-3 text-slate-600 dark:text-slate-400 text-center lg:text-left text-base leading-relaxed"
+                  className="portal-desc order-2 lg:order-1 lg:col-span-2 text-slate-600 dark:text-slate-400 text-center lg:text-left text-base leading-relaxed"
                 >
                   {portalTabs[portalTab].desc}
                 </p>
 
                 {/* Marco de navegador con la vista activa */}
-                <div className="order-1 lg:order-2 lg:col-span-6 w-full rounded-2xl overflow-hidden ring-1 ring-black/5 shadow-2xl bg-white dark:bg-slate-900">
+                <div className="order-1 lg:order-2 lg:col-span-8 w-full rounded-2xl overflow-hidden ring-1 ring-black/5 shadow-2xl bg-white dark:bg-slate-900">
                   <div className="flex items-center gap-2 px-4 h-10 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
                     <span className="w-3 h-3 rounded-full bg-red-400" />
                     <span className="w-3 h-3 rounded-full bg-amber-400" />
@@ -763,7 +779,7 @@ export default function Home() {
                 </div>
 
                 {/* Pestañas mínimas numeradas (columna lateral derecha) */}
-                <div className="order-3 lg:col-span-3 flex flex-wrap justify-center lg:flex-col gap-4 lg:gap-6 lg:pl-6">
+                <div className="order-3 lg:col-span-2 flex flex-wrap justify-center lg:flex-col gap-4 lg:gap-6 lg:pl-4">
                   {portalTabs.map((t, i) => (
                     <button
                       key={t.label}
@@ -800,7 +816,6 @@ export default function Home() {
         <section id="servicios" className="py-24 lg:py-32 bg-slate-50 dark:bg-slate-950">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <SectionHead
-              tag="servicios"
               title="todo tu back-office contable, resuelto"
               lead="Nos hacemos cargo de los números para que tú te enfoques en crecer."
             />
@@ -999,7 +1014,6 @@ export default function Home() {
         <section id="planes" className="py-24 lg:py-32 bg-slate-50 dark:bg-slate-950">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <SectionHead
-              tag="planes mensuales"
               title="un plan para cada etapa de tu empresa"
               lead="Más que contabilidad, información clara para tomar mejores decisiones y pagar lo justo en impuestos."
             />
@@ -1162,7 +1176,7 @@ export default function Home() {
             </p>
           </div>
           <div>
-            <h4 className="text-white font-semibold mb-4">servicios</h4>
+            <h4 className="text-white font-semibold uppercase tracking-wide text-sm mb-4">Servicios</h4>
             <ul className="space-y-2.5 text-sm">
               <li><a href="#servicios" className="hover:text-white transition-colors">Contabilidad mensual</a></li>
               <li><a href="#servicios" className="hover:text-white transition-colors">Impuestos (F29, F22)</a></li>
@@ -1171,7 +1185,7 @@ export default function Home() {
             </ul>
           </div>
           <div>
-            <h4 className="text-white font-semibold mb-4">recursos</h4>
+            <h4 className="text-white font-semibold uppercase tracking-wide text-sm mb-4">Recursos</h4>
             <ul className="space-y-2.5 text-sm">
               <li><Link href="/portal" className="hover:text-white transition-colors">Portal de clientes</Link></li>
               <li><a href="#portal" className="hover:text-white transition-colors">¿Cómo funciona?</a></li>
@@ -1179,7 +1193,7 @@ export default function Home() {
             </ul>
           </div>
           <div>
-            <h4 className="text-white font-semibold mb-4">contacto</h4>
+            <h4 className="text-white font-semibold uppercase tracking-wide text-sm mb-4">Contacto</h4>
             <ul className="space-y-2.5 text-sm">
               <li className="flex items-center gap-2 min-w-0">
                 <MapPin className="w-4 h-4 text-brand-400 flex-shrink-0" />

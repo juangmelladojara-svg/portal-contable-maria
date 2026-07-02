@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Space_Grotesk, Great_Vibes } from "next/font/google";
+import { Geist, Geist_Mono, Space_Grotesk, Alex_Brush } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,9 +19,9 @@ const spaceGrotesk = Space_Grotesk({
   weight: ["500", "600", "700"],
 });
 
-// Script para el "con María" del logo.
-const greatVibes = Great_Vibes({
-  variable: "--font-great-vibes",
+// Script para el "con María" del logo (alternativa libre más cercana a Brittany Signature).
+const signature = Alex_Brush({
+  variable: "--font-signature",
   subsets: ["latin"],
   weight: ["400"],
 });
@@ -41,7 +41,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} ${greatVibes.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} ${signature.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
