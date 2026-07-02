@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import Lenis from "lenis";
 import {
   ArrowRight,
   CalendarCheck,
@@ -214,33 +215,114 @@ function ClientLogo({ c }: { c: { name: string; file: string } }) {
   );
 }
 
+/** Header de sección asimétrico: título grande a la izquierda, lead angosto a la derecha. */
+function SectionHead({ tag, title, lead }: { tag: string; title: string; lead: string }) {
+  return (
+    <div data-reveal className="grid lg:grid-cols-12 gap-6 lg:gap-8 items-end mb-12 lg:mb-16">
+      <div className="lg:col-span-8">
+        <span className="block text-sm font-medium tracking-wide text-accent-600 mb-4">( {tag} )</span>
+        <h2 className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.04] text-slate-900 dark:text-white text-balance">
+          {title}
+        </h2>
+      </div>
+      <p className="lg:col-span-4 text-base lg:text-lg text-slate-600 dark:text-slate-400 max-w-md lg:justify-self-end lg:pb-1.5">
+        {lead}
+      </p>
+    </div>
+  );
+}
+
 export default function Home() {
   const root = useRef<HTMLDivElement>(null);
   const [portalTab, setPortalTab] = useState(0);
+  const pctRef = useRef<HTMLSpanElement>(null);
+  const lineRef = useRef<HTMLSpanElement>(null);
+  const lenisRef = useRef<Lenis | null>(null);
+  const portalSTRef = useRef<ScrollTrigger | null>(null);
+  const portalTabRef = useRef(0);
 
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
 
+    // Scroll con inercia (sensación cinemática); respeta reduced-motion.
+    let lenis: Lenis | null = null;
+    let tick: ((time: number) => void) | null = null;
+    let heroMove: ((e: MouseEvent) => void) | null = null;
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      lenis = new Lenis({ duration: 1.15, anchors: true });
+      lenisRef.current = lenis;
+      lenis.on("scroll", ScrollTrigger.update);
+      tick = (time: number) => lenis!.raf(time * 1000);
+      gsap.ticker.add(tick);
+      gsap.ticker.lagSmoothing(0);
+    }
+
     const ctx = gsap.context(() => {
-      // Hero: fade-up en cascada
-      gsap.from(".hero-reveal", {
-        y: 30,
-        opacity: 0,
-        duration: 0.9,
-        ease: "power3.out",
-        stagger: 0.12,
-        delay: 0.1,
+      // ---- HERO: entrada cinematográfica ----
+      const tl = gsap.timeline({ defaults: { ease: "power4.out" } });
+      tl.from(".hero-eyebrow", { y: 22, opacity: 0, duration: 0.6 })
+        // Las líneas del titular emergen desde máscaras (overflow hidden)
+        .from(".hero-line", { yPercent: 112, duration: 1.15, stagger: 0.14 }, 0.08)
+        // El resaltador dorado se dibuja de izquierda a derecha
+        .fromTo(
+          ".hero-band",
+          { backgroundSize: "0% 100%" },
+          { backgroundSize: "100% 100%", duration: 0.85, ease: "power3.inOut" },
+          "-=0.5"
+        )
+        // La firma script cae con una leve rotación
+        .from(".hero-script", { opacity: 0, y: 16, rotate: 10, duration: 0.7 }, "-=0.55")
+        .from(".hero-sub", { y: 26, opacity: 0, duration: 0.75, stagger: 0.12 }, "-=0.6")
+        // El visual del portal entra desde el borde derecho
+        .from(".hero-visual-inner", { x: 180, y: 60, opacity: 0, duration: 1.4 }, 0.35)
+        .from(
+          ".hero-chip",
+          { y: 28, opacity: 0, scale: 0.92, duration: 0.6, ease: "back.out(1.6)", stagger: 0.12 },
+          "-=0.7"
+        );
+
+      // Contadores: las cifras suben desde 0 al entrar en pantalla
+      gsap.utils.toArray<HTMLElement>(".stat-num").forEach((el) => {
+        const end = parseFloat(el.dataset.value || "0");
+        const prefix = el.dataset.prefix || "";
+        const suffix = el.dataset.suffix || "";
+        const obj = { v: 0 };
+        gsap.to(obj, {
+          v: end,
+          duration: 1.6,
+          ease: "power2.out",
+          scrollTrigger: { trigger: el, start: "top 94%" },
+          onUpdate: () => {
+            el.textContent = `${prefix}${Math.round(obj.v)}${suffix}`;
+          },
+        });
       });
 
       // Reveal genérico por sección (ágil + GPU)
       gsap.utils.toArray<HTMLElement>("[data-reveal]").forEach((el) => {
         gsap.from(el, {
-          y: 24,
+          y: 36,
           opacity: 0,
-          duration: 0.55,
-          ease: "power2.out",
+          duration: 0.75,
+          ease: "power3.out",
           force3D: true,
-          scrollTrigger: { trigger: el, start: "top 90%" },
+          scrollTrigger: { trigger: el, start: "top 88%" },
+        });
+      });
+
+      // Grupos: los hijos entran en cascada (bento, planes).
+      // Trigger por tarjeta + delay incremental: robusto frente a pins/refresh.
+      gsap.utils.toArray<HTMLElement>("[data-reveal-group]").forEach((group) => {
+        Array.from(group.children).forEach((child, i) => {
+          gsap.from(child, {
+            y: 44,
+            opacity: 0,
+            duration: 0.75,
+            ease: "power3.out",
+            force3D: true,
+            delay: (i % 4) * 0.09,
+            scrollTrigger: { trigger: child as Element, start: "top 92%" },
+          });
         });
       });
 
@@ -283,24 +365,154 @@ export default function Home() {
         ease: "none",
         repeat: -1,
       });
+
+      // Hero: el titular deriva hacia arriba al scrollear (parallax)
+      gsap.to(".hero-par", {
+        yPercent: -14,
+        opacity: 0.35,
+        ease: "none",
+        scrollTrigger: {
+          trigger: ".hero-section",
+          start: "top top",
+          end: "bottom top",
+          scrub: true,
+        },
+      });
+
+      // El visual del portal deriva a distinta velocidad (profundidad)
+      gsap.to(".hero-visual-inner", {
+        yPercent: -10,
+        ease: "none",
+        scrollTrigger: {
+          trigger: ".hero-section",
+          start: "top top",
+          end: "bottom top",
+          scrub: true,
+        },
+      });
+
+      // Palabra gigante de fondo: cruza la escena con el scroll (scrub)
+      gsap.fromTo(
+        ".giant-word",
+        { xPercent: 8 },
+        {
+          xPercent: -36,
+          ease: "none",
+          scrollTrigger: {
+            trigger: ".giant-word-band",
+            start: "top bottom",
+            end: "bottom top",
+            scrub: true,
+          },
+        }
+      );
+
+      // Cierre: la marca de agua script se desplaza con el scroll
+      gsap.from(".cta-script", {
+        xPercent: 10,
+        ease: "none",
+        scrollTrigger: {
+          trigger: ".cta-final",
+          start: "top bottom",
+          end: "bottom top",
+          scrub: true,
+        },
+      });
+
+      // Portal: escena anclada — el scroll recorre las 3 vistas (solo escritorio)
+      const mm = gsap.matchMedia();
+      mm.add("(min-width: 1024px)", () => {
+        const st = ScrollTrigger.create({
+          trigger: ".portal-pin",
+          start: "top top",
+          end: "+=1500",
+          pin: true,
+          onUpdate: (self) => {
+            const idx = Math.min(2, Math.floor(self.progress * 3));
+            if (idx !== portalTabRef.current) {
+              portalTabRef.current = idx;
+              setPortalTab(idx);
+            }
+          },
+        });
+        portalSTRef.current = st;
+        return () => {
+          portalSTRef.current = null;
+        };
+      });
+
+      // Marco fijo: porcentaje + línea de progreso del scroll
+      ScrollTrigger.create({
+        start: 0,
+        end: () => document.documentElement.scrollHeight - window.innerHeight,
+        onUpdate: (self) => {
+          if (pctRef.current) pctRef.current.textContent = `${Math.round(self.progress * 100)}%`;
+          if (lineRef.current) lineRef.current.style.transform = `scaleX(${self.progress})`;
+        },
+      });
+
+      // Parallax al mouse en el hero (solo puntero fino)
+      if (window.matchMedia("(pointer: fine)").matches) {
+        const heroEl = document.querySelector<HTMLElement>(".hero-section");
+        if (heroEl) {
+          const xTitle = gsap.quickTo(".hero-par", "x", { duration: 0.8, ease: "power3.out" });
+          const xVisual = gsap.quickTo(".hero-visual-inner", "x", { duration: 1.1, ease: "power3.out" });
+          const chipTos = gsap.utils.toArray<HTMLElement>(".hero-chip").map((c) => ({
+            x: gsap.quickTo(c, "x", { duration: 1, ease: "power3.out" }),
+            y: gsap.quickTo(c, "y", { duration: 1, ease: "power3.out" }),
+          }));
+          heroMove = (e: MouseEvent) => {
+            const nx = e.clientX / window.innerWidth - 0.5;
+            const ny = e.clientY / window.innerHeight - 0.5;
+            xTitle(nx * 18);
+            xVisual(nx * -22);
+            chipTos.forEach((t, i) => {
+              const f = i % 2 === 0 ? 1 : -1.4;
+              t.x(nx * 24 * f);
+              t.y(ny * 16 * f);
+            });
+          };
+          heroEl.addEventListener("mousemove", heroMove);
+        }
+      }
     }, root);
 
-    return () => ctx.revert();
+    return () => {
+      ctx.revert();
+      if (heroMove) document.querySelector(".hero-section")?.removeEventListener("mousemove", heroMove as EventListener);
+      if (tick) gsap.ticker.remove(tick);
+      if (lenis) {
+        lenis.destroy();
+        lenisRef.current = null;
+      }
+    };
   }, []);
+
+  /** Cambia de vista del portal; si la escena está anclada, scrollea a su tramo. */
+  const goTab = (i: number) => {
+    portalTabRef.current = i;
+    setPortalTab(i);
+    const st = portalSTRef.current;
+    if (st) {
+      const target = st.start + ((i + 0.5) / 3) * (st.end - st.start);
+      if (lenisRef.current) lenisRef.current.scrollTo(target, { duration: 0.9 });
+      else window.scrollTo({ top: target, behavior: "smooth" });
+    }
+  };
 
   return (
     <div ref={root} className="flex flex-col min-h-screen">
       {/* ============== 1. NAVBAR ============== */}
       <header className="fixed top-0 inset-x-0 z-50 glass border-b border-slate-200/60 dark:border-slate-800/60">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
           <BrandMark href="/" />
 
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600 dark:text-slate-300">
-            <a href="#servicios" className="hover:text-brand-600 transition-colors">Servicios</a>
-            <a href="#planes" className="hover:text-brand-600 transition-colors">Planes</a>
-            <a href="#integraciones" className="hover:text-brand-600 transition-colors">Integraciones</a>
-            <a href="#portal" className="hover:text-brand-600 transition-colors">Portal</a>
-            <a href="#contacto" className="hover:text-brand-600 transition-colors">Contacto</a>
+          <nav className="hidden lg:flex items-center gap-8 text-sm font-medium text-slate-600 dark:text-slate-300">
+            <a href="#servicios" className="hover:text-brand-600 transition-colors">servicios</a>
+            <a href="#planes" className="hover:text-brand-600 transition-colors">planes</a>
+            <a href="#integraciones" className="hover:text-brand-600 transition-colors">integraciones</a>
+            <a href="#portal" className="hover:text-brand-600 transition-colors">portal</a>
+            <a href="#contacto" className="hover:text-brand-600 transition-colors">contacto</a>
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
@@ -309,111 +521,180 @@ export default function Home() {
               className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-brand-600 transition-colors px-3 py-2"
             >
               <LogIn className="w-4 h-4" />
-              Acceso clientes
+              acceso clientes
             </Link>
             <a
               href="#contacto"
-              className="btn-glow inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold py-2.5 px-4 rounded-lg"
+              className="btn-glow inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold py-2 px-3.5 sm:py-2.5 sm:px-5 rounded-full whitespace-nowrap"
             >
-              Agenda asesoría
-              <ArrowRight className="w-4 h-4" />
+              <span className="sm:hidden">agenda</span>
+              <span className="hidden sm:inline">agenda asesoría</span>
+              <ArrowRight className="w-4 h-4 shrink-0" />
             </a>
           </div>
         </div>
       </header>
 
       <main className="flex-grow pt-16">
-        {/* ============== 2. HERO (editorial asimétrico) ============== */}
-        <section className="relative overflow-hidden bg-[#faf9f7] dark:bg-slate-950 pt-14 pb-16 lg:pt-24 lg:pb-24">
+        {/* ============== 2. HERO (tipográfico, un solo concepto) ============== */}
+        <section className="hero-section relative overflow-hidden bg-[#faf9f7] dark:bg-slate-950">
           <div className="absolute inset-0 -z-10 grid-bg" aria-hidden />
           <div className="absolute right-[-10%] top-[-5%] -z-10 h-[620px] w-[60%] glow-brand" aria-hidden />
 
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-            {/* Columna de texto */}
-            <div className="lg:col-span-7 xl:col-span-6">
-              <h1 className="hero-reveal font-display text-5xl sm:text-6xl xl:text-7xl font-semibold tracking-tight text-slate-900 dark:text-white leading-[1.02] mb-6">
-                Tu contabilidad
-                <br />
-                en <span className="underline-gold">orden</span>, sin estrés.
-              </h1>
-
-              <p className="hero-reveal max-w-xl text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-8">
-                Contabilidad, remuneraciones y asesoría tributaria para pymes. Más un
-                portal donde descargas balances, liquidaciones e impuestos al instante
-                — sin enviar un solo correo.
-              </p>
-
-              <div className="hero-reveal flex flex-wrap gap-4">
-                <a
-                  href="#contacto"
-                  className="btn-glow inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-base font-semibold py-3.5 px-7 rounded-xl"
-                >
-                  <CalendarCheck className="w-5 h-5" />
-                  Agenda una asesoría
-                </a>
-                <Link
-                  href="/portal"
-                  className="inline-flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-white py-3.5 px-3 group"
-                >
-                  Conoce el portal
-                  <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-                </Link>
-              </div>
-
-              {/* Stat strip editorial */}
-              <div className="hero-reveal mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 text-sm">
-                {[
-                  { n: "+50", l: "pymes asesoradas" },
-                  { n: "15", l: "años de experiencia" },
-                  { n: "100%", l: "al día con el SII" },
-                ].map((s, i) => (
-                  <div key={s.l} className="flex items-center gap-8">
-                    {i > 0 && <span className="hidden sm:block h-8 w-px bg-slate-200 dark:bg-slate-800" />}
-                    <div>
-                      <span className="font-display text-2xl font-semibold text-slate-900 dark:text-white">{s.n}</span>
-                      <span className="ml-2 text-slate-500 dark:text-slate-400">{s.l}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Columna de imagen (corporativa) */}
-            <div className="hero-reveal lg:col-span-5 xl:col-span-6 relative">
-              <div className="relative w-full max-w-md mx-auto lg:max-w-none aspect-[4/5] rounded-[1.75rem] overflow-hidden shadow-2xl ring-1 ring-black/5">
-                {/* PLACEHOLDER corporativo: reemplazar por imagen propia */}
-                <Image
-                  src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=900&q=85"
-                  alt="Oficina de Contabilidad con María"
-                  fill
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 45vw"
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-brand-900/30 via-transparent to-transparent" />
-              </div>
-
-              {/* KPI flotante sobre la imagen */}
-              <div className="absolute -bottom-5 -left-2 sm:-left-5 glass-card rounded-2xl px-4 py-3 flex items-center gap-3 animate-float shadow-xl">
-                <span className="grid place-items-center w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600">
-                  <CheckCircle2 className="w-5 h-5" />
-                </span>
-                <div>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">F29 Declarado</p>
-                  <p className="text-xs text-slate-500">Periodo al día</p>
+          {/* Visual del portal: el "objeto héroe" que sangra por el borde derecho */}
+          <div
+            aria-hidden
+            className="hidden lg:block absolute right-[-22%] xl:right-[-14%] top-[57%] -translate-y-1/2 w-[54vw] max-w-[860px] z-0"
+          >
+            <div className="hero-visual-inner relative rotate-[5deg]">
+              <div className="rounded-2xl overflow-hidden ring-1 ring-black/5 shadow-2xl bg-white dark:bg-slate-900">
+                <div className="flex items-center gap-2 px-4 h-10 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+                  <span className="w-3 h-3 rounded-full bg-red-400" />
+                  <span className="w-3 h-3 rounded-full bg-amber-400" />
+                  <span className="w-3 h-3 rounded-full bg-green-400" />
+                  <span className="ml-3 text-xs font-mono text-slate-400 truncate">portal.contabilidadconmaria.cl</span>
+                </div>
+                <div className="relative aspect-[16/10]">
+                  <Image
+                    src="/portal/03-metricas.png"
+                    alt=""
+                    fill
+                    priority
+                    sizes="60vw"
+                    className="object-cover object-top"
+                  />
                 </div>
               </div>
 
-              {/* Acento dorado tras la imagen */}
-              <div className="absolute -top-4 -right-4 -z-10 w-28 h-28 rounded-2xl bg-accent-500/20" aria-hidden />
+              {/* Chips flotantes anclados al visual */}
+              <div className="hero-chip absolute -left-10 top-10 -rotate-2">
+                <div className="animate-float glass-card rounded-2xl px-4 py-3 flex items-center gap-3 shadow-xl">
+                  <span className="grid place-items-center w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">F29 declarado</p>
+                    <p className="text-xs text-slate-500">período al día</p>
+                  </div>
+                </div>
+              </div>
+              <div className="hero-chip absolute -left-16 bottom-14 rotate-2">
+                <div
+                  className="animate-float glass-card rounded-2xl px-4 py-3 flex items-center gap-3 shadow-xl"
+                  style={{ animationDuration: "7.5s", animationDelay: "0.8s" }}
+                >
+                  <span className="grid place-items-center w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600">
+                    <TrendingUp className="w-5 h-5" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">+18% margen</p>
+                    <p className="text-xs text-slate-500">vs. año anterior</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-[calc(100dvh-4rem)] flex flex-col justify-center pt-12 pb-24 lg:pb-28">
+            <p className="hero-eyebrow text-sm font-medium tracking-wide text-slate-500 dark:text-slate-400 mb-6 lg:mb-8">
+              contabilidad · impuestos · remuneraciones
+            </p>
+
+            <h1 className="hero-par relative font-display font-semibold tracking-tight text-slate-900 dark:text-white leading-[0.98] text-[clamp(2.5rem,9.5vw,8.25rem)]">
+              {/* Cada línea emerge de su propia máscara */}
+              <span className="block overflow-hidden">
+                <span className="hero-line block">tu contabilidad</span>
+              </span>
+              <span className="block overflow-hidden pb-[0.18em] -mb-[0.12em]">
+                <span className="hero-line block">
+                  <span
+                    className="hero-band underline-gold"
+                    style={{
+                      backgroundImage:
+                        "linear-gradient(transparent 58%, rgba(201, 166, 117, 0.4) 58%, rgba(201, 166, 117, 0.4) 86%, transparent 86%)",
+                      backgroundRepeat: "no-repeat",
+                      backgroundSize: "100% 100%",
+                    }}
+                  >
+                    en orden.
+                  </span>
+                  <span className="inline-block -rotate-3 ml-4 sm:ml-6 align-baseline">
+                    <span
+                      className="hero-script inline-block font-script font-normal text-accent-500 text-[0.36em] leading-none relative top-[-0.4em]"
+                      aria-label="con María"
+                    >
+                      con María
+                    </span>
+                  </span>
+                </span>
+              </span>
+            </h1>
+
+            {/* Lead mínimo + un solo CTA (escaso, estilo Sofi) */}
+            <p className="hero-sub mt-8 lg:mt-10 max-w-sm text-base lg:text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
+              contabilidad, remuneraciones y asesoría tributaria para pymes — con un
+              portal donde descargas todo al instante.
+            </p>
+            <div className="hero-sub mt-7 flex flex-wrap items-center gap-4">
+              <a
+                href="#contacto"
+                className="btn-glow inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-base font-semibold py-3.5 px-7 rounded-full"
+              >
+                <CalendarCheck className="w-5 h-5" />
+                agenda una asesoría
+              </a>
+              <Link
+                href="/portal"
+                className="inline-flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-white py-3.5 px-2 group"
+              >
+                conoce el portal
+                <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+              </Link>
             </div>
           </div>
         </section>
 
-        {/* ============== 3. SOCIAL PROOF ============== */}
-        <section className="py-12 border-y border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden">
-          <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 mb-7">
-            Empresas que confían su contabilidad a María
+        {/* ============== 2b. CIFRAS (banda fina con contadores) ============== */}
+        <section className="bg-white dark:bg-slate-950 border-y border-slate-200/70 dark:border-slate-800">
+          <div
+            data-reveal
+            className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 flex flex-wrap items-center gap-x-10 gap-y-3 text-sm"
+          >
+            {[
+              { v: 50, prefix: "+", l: "pymes asesoradas" },
+              { v: 15, l: "años de experiencia" },
+              { v: 100, suffix: "%", l: "al día con el SII" },
+            ].map((s, i) => (
+              <div key={s.l} className="flex items-center gap-10">
+                {i > 0 && <span className="hidden sm:block h-8 w-px bg-slate-200 dark:bg-slate-800" />}
+                <div>
+                  <span
+                    className="stat-num font-display text-2xl font-semibold text-slate-900 dark:text-white tabular-nums"
+                    data-value={s.v}
+                    data-prefix={s.prefix ?? ""}
+                    data-suffix={s.suffix ?? ""}
+                  >
+                    {`${s.prefix ?? ""}${s.v}${s.suffix ?? ""}`}
+                  </span>
+                  <span className="ml-2 text-slate-500 dark:text-slate-400">{s.l}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ============== 3. SOCIAL PROOF (escena de palabra gigante + marquesina) ============== */}
+        <section className="giant-word-band relative min-h-[60vh] lg:min-h-[82vh] flex flex-col justify-center py-24 bg-white dark:bg-slate-950 overflow-hidden">
+          {/* Palabra gigante: cruza la escena con el scroll (como "natural magic") */}
+          <span
+            aria-hidden
+            className="giant-word absolute top-1/2 -translate-y-1/2 left-[-8%] whitespace-nowrap font-display font-bold tracking-tight leading-none text-[34vw] text-stroke-brand select-none pointer-events-none"
+          >
+            confianza
+          </span>
+
+          <p className="relative text-sm font-medium tracking-wide text-slate-400 mb-14 lg:mb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+            ( empresas que confían su contabilidad a María )
           </p>
           <div className="relative flex overflow-x-hidden">
             {[0, 1].map((track) => (
@@ -430,86 +711,103 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ============== 3b. PORTAL — vistas interactivas (tabs) ============== */}
-        <section className="py-20 lg:py-28 bg-[#faf9f7] dark:bg-slate-950">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div data-reveal className="text-center max-w-2xl mx-auto mb-10">
-              <span className="inline-block text-xs font-semibold uppercase tracking-[0.18em] text-accent-600 mb-3">
-                El portal
-              </span>
-              <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-slate-900 dark:text-white mb-4">
-                Conoce el portal por dentro
-              </h2>
-              <p className="text-lg text-slate-600 dark:text-slate-400">
-                Tu información ordenada y disponible cuando la necesites. Elige una vista:
-              </p>
-            </div>
+        {/* ============== 3b. PORTAL — escena anclada (el scroll recorre las vistas) ============== */}
+        <section className="bg-[#faf9f7] dark:bg-slate-950">
+          <div className="portal-pin lg:min-h-[100svh] flex items-center py-20 lg:pt-24 lg:pb-10">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+              {/* Header compacto para caber en la escena anclada */}
+              <div data-reveal className="grid lg:grid-cols-12 gap-4 lg:gap-8 items-end mb-8">
+                <div className="lg:col-span-8">
+                  <span className="block text-sm font-medium tracking-wide text-accent-600 mb-3">( el portal )</span>
+                  <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight leading-[1.04] text-slate-900 dark:text-white text-balance">
+                    conoce el portal por dentro
+                  </h2>
+                </div>
+                <p className="lg:col-span-4 text-base text-slate-600 dark:text-slate-400 max-w-md lg:justify-self-end lg:pb-1">
+                  Tu información ordenada y disponible cuando la necesites. Sigue scrolleando: el recorrido pasa por cada vista.
+                </p>
+              </div>
 
-            {/* Pestañas */}
-            <div data-reveal className="flex flex-wrap justify-center gap-2 mb-8">
-              {portalTabs.map((t, i) => (
-                <button
-                  key={t.label}
-                  onClick={() => setPortalTab(i)}
-                  aria-pressed={portalTab === i}
-                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                    portalTab === i
-                      ? "bg-brand-600 text-white shadow-sm"
-                      : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-brand-300 hover:text-brand-700"
-                  }`}
+              {/* Escena: descripción lateral | mockup central | pestañas mínimas */}
+              <div data-reveal className="grid lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+                {/* Descripción de la vista activa (columna lateral izquierda) */}
+                <p
+                  key={portalTab}
+                  className="portal-desc order-2 lg:order-1 lg:col-span-3 text-slate-600 dark:text-slate-400 text-center lg:text-left text-base leading-relaxed"
                 >
-                  <t.icon className="w-4 h-4" />
-                  {t.label}
-                </button>
-              ))}
-            </div>
+                  {portalTabs[portalTab].desc}
+                </p>
 
-            {/* Marco de navegador con la vista activa */}
-            <div data-reveal className="rounded-2xl overflow-hidden ring-1 ring-black/5 shadow-2xl bg-white dark:bg-slate-900">
-              <div className="flex items-center gap-2 px-4 h-10 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
-                <span className="w-3 h-3 rounded-full bg-red-400" />
-                <span className="w-3 h-3 rounded-full bg-amber-400" />
-                <span className="w-3 h-3 rounded-full bg-green-400" />
-                <span className="ml-3 text-xs font-mono text-slate-400 truncate">portal.contabilidadconmaria.cl</span>
-              </div>
-              <div className="relative aspect-[16/10]">
-                {portalTabs.map((t, i) => (
-                  <Image
-                    key={t.src}
-                    src={t.src}
-                    alt={t.label}
-                    fill
-                    sizes="(max-width: 1024px) 100vw, 1024px"
-                    className={`object-cover object-top transition-opacity duration-500 ${
-                      portalTab === i ? "opacity-100" : "opacity-0 pointer-events-none"
-                    }`}
-                  />
-                ))}
+                {/* Marco de navegador con la vista activa */}
+                <div className="order-1 lg:order-2 lg:col-span-6 w-full rounded-2xl overflow-hidden ring-1 ring-black/5 shadow-2xl bg-white dark:bg-slate-900">
+                  <div className="flex items-center gap-2 px-4 h-10 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+                    <span className="w-3 h-3 rounded-full bg-red-400" />
+                    <span className="w-3 h-3 rounded-full bg-amber-400" />
+                    <span className="w-3 h-3 rounded-full bg-green-400" />
+                    <span className="ml-3 text-xs font-mono text-slate-400 truncate">portal.contabilidadconmaria.cl</span>
+                  </div>
+                  <div className="relative aspect-[16/10]">
+                    {portalTabs.map((t, i) => (
+                      <Image
+                        key={t.src}
+                        src={t.src}
+                        alt={t.label}
+                        fill
+                        sizes="(max-width: 1024px) 100vw, 640px"
+                        className={`object-cover object-top transition-all duration-700 ease-out ${
+                          portalTab === i ? "opacity-100 scale-100" : "opacity-0 scale-[1.05] pointer-events-none"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Pestañas mínimas numeradas (columna lateral derecha) */}
+                <div className="order-3 lg:col-span-3 flex flex-wrap justify-center lg:flex-col gap-4 lg:gap-6 lg:pl-6">
+                  {portalTabs.map((t, i) => (
+                    <button
+                      key={t.label}
+                      onClick={() => goTab(i)}
+                      aria-pressed={portalTab === i}
+                      className={`group flex items-center gap-3 text-left text-sm font-semibold tracking-wide transition-colors ${
+                        portalTab === i
+                          ? "text-brand-700 dark:text-brand-300"
+                          : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                      }`}
+                    >
+                      <span
+                        className={`font-mono text-xs transition-colors ${
+                          portalTab === i ? "text-accent-600" : "text-slate-300 dark:text-slate-700"
+                        }`}
+                      >
+                        0{i + 1}
+                      </span>
+                      {t.label.toLowerCase()}
+                      <span
+                        className={`hidden lg:block h-px transition-all duration-500 ${
+                          portalTab === i ? "w-10 bg-accent-500" : "w-4 bg-slate-200 dark:bg-slate-800"
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-
-            {/* Descripción de la vista activa */}
-            <p data-reveal className="mt-5 text-center text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
-              {portalTabs[portalTab].desc}
-            </p>
           </div>
         </section>
 
         {/* ============== 4. BENTO GRID — SERVICIOS ============== */}
-        <section id="servicios" className="py-24 bg-slate-50 dark:bg-slate-950">
+        <section id="servicios" className="py-24 lg:py-32 bg-slate-50 dark:bg-slate-950">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div data-reveal className="text-center max-w-2xl mx-auto mb-14">
-              <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-slate-900 dark:text-white mb-4">
-                Todo tu back-office contable, resuelto
-              </h2>
-              <p className="text-lg text-slate-600 dark:text-slate-400">
-                Nos hacemos cargo de los números para que tú te enfoques en crecer.
-              </p>
-            </div>
+            <SectionHead
+              tag="servicios"
+              title="todo tu back-office contable, resuelto"
+              lead="Nos hacemos cargo de los números para que tú te enfoques en crecer."
+            />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div data-reveal-group className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {/* A — Contabilidad mensual (span 2) con gráfico de 12 meses */}
-              <article data-reveal className="card-lift md:col-span-2 glass-card rounded-2xl p-7 flex flex-col">
+              <article className="card-lift md:col-span-2 glass-card rounded-2xl p-7 flex flex-col">
                 <div className="mb-4">
                   <span className="grid place-items-center w-11 h-11 rounded-xl bg-brand-50 dark:bg-brand-900/20 text-brand-600 mb-4">
                     <Calculator className="w-5 h-5" />
@@ -549,7 +847,7 @@ export default function Home() {
               </article>
 
               {/* B — Impuestos con checklist auto-check */}
-              <article data-reveal className="card-lift glass-card rounded-2xl p-7 flex flex-col">
+              <article className="card-lift glass-card rounded-2xl p-7 flex flex-col">
                 <span className="grid place-items-center w-11 h-11 rounded-xl bg-brand-50 dark:bg-brand-900/20 text-brand-600 mb-4">
                   <ReceiptText className="w-5 h-5" />
                 </span>
@@ -570,7 +868,7 @@ export default function Home() {
               </article>
 
               {/* C — Remuneraciones con lista de documentos */}
-              <article data-reveal className="card-lift glass-card rounded-2xl p-7 flex flex-col">
+              <article className="card-lift glass-card rounded-2xl p-7 flex flex-col">
                 <span className="grid place-items-center w-11 h-11 rounded-xl bg-brand-50 dark:bg-brand-900/20 text-brand-600 mb-4">
                   <Users className="w-5 h-5" />
                 </span>
@@ -593,7 +891,7 @@ export default function Home() {
               </article>
 
               {/* D — Portal (span 2) */}
-              <article data-reveal id="portal" className="card-lift md:col-span-2 glass-card rounded-2xl p-7 flex flex-col sm:flex-row gap-6 items-center">
+              <article id="portal" className="card-lift md:col-span-2 glass-card rounded-2xl p-7 flex flex-col sm:flex-row gap-6 items-center">
                 <div className="flex-1">
                   <span className="grid place-items-center w-11 h-11 rounded-xl bg-accent-500/15 text-accent-600 mb-4">
                     <ShieldCheck className="w-5 h-5" />
@@ -620,19 +918,13 @@ export default function Home() {
         </section>
 
         {/* ============== 5. INTEGRACIONES ============== */}
-        <section id="integraciones" className="py-24 bg-white dark:bg-slate-950">
+        <section id="integraciones" className="py-24 lg:py-32 bg-white dark:bg-slate-950">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div data-reveal className="text-center max-w-2xl mx-auto mb-16">
-              <span className="inline-block text-xs font-semibold uppercase tracking-[0.18em] text-accent-600 mb-3">
-                Integraciones
-              </span>
-              <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-slate-900 dark:text-white mb-4">
-                Conectada con todo el ecosistema tributario
-              </h2>
-              <p className="text-lg text-slate-600 dark:text-slate-400">
-                Sincronizamos tu información con las instituciones que importan, y la dejamos lista en tu portal.
-              </p>
-            </div>
+            <SectionHead
+              tag="integraciones"
+              title="conectada con todo el ecosistema tributario"
+              lead="Sincronizamos tu información con las instituciones que importan, y la dejamos lista en tu portal."
+            />
 
             <div data-reveal className="relative grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center gap-8 md:gap-6">
               {/* Conectores animados (solo escritorio) */}
@@ -704,26 +996,18 @@ export default function Home() {
         </section>
 
         {/* ============== 5b. PLANES MENSUALES ============== */}
-        <section id="planes" className="py-24 bg-slate-50 dark:bg-slate-950">
+        <section id="planes" className="py-24 lg:py-32 bg-slate-50 dark:bg-slate-950">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div data-reveal className="text-center max-w-2xl mx-auto mb-14">
-              <span className="inline-block text-xs font-semibold uppercase tracking-[0.18em] text-accent-600 mb-3">
-                Planes mensuales
-              </span>
-              <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-slate-900 dark:text-white mb-4">
-                Un plan para cada etapa de tu empresa
-              </h2>
-              <p className="text-lg text-slate-600 dark:text-slate-400">
-                Más que contabilidad, te entrego información clara para tomar{" "}
-                <span className="underline-gold">mejores decisiones</span> y pagar lo justo en impuestos.
-              </p>
-            </div>
+            <SectionHead
+              tag="planes mensuales"
+              title="un plan para cada etapa de tu empresa"
+              lead="Más que contabilidad, información clara para tomar mejores decisiones y pagar lo justo en impuestos."
+            />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
+            <div data-reveal-group className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
               {planes.map((p) => (
                 <article
                   key={p.num}
-                  data-reveal
                   className={`card-lift glass-card rounded-2xl p-6 flex flex-col relative ${
                     p.popular ? "ring-2 ring-accent-500 shadow-lg" : ""
                   }`}
@@ -823,42 +1107,53 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ============== 6. CTA FINAL ============== */}
-        <section className="pb-24">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div data-reveal className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-700 via-brand-600 to-brand-700 px-8 py-16 md:py-20 text-center">
-              <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[36rem] h-[36rem] glow-accent" aria-hidden />
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 h-1 w-24 rounded-b-full bg-accent-500" aria-hidden />
-              <div className="relative z-10 max-w-2xl mx-auto">
-                <h2 className="font-display text-3xl md:text-5xl font-semibold tracking-tight text-white mb-5">
-                  Deja tus números en manos expertas
-                </h2>
-                <p className="text-brand-100 text-lg mb-9">
-                  Agenda una asesoría sin costo y empieza a ver tu contabilidad clara, ordenada y siempre disponible.
-                </p>
-                <div className="flex flex-wrap justify-center gap-4">
-                  <a
-                    href="#contacto"
-                    className="btn-glow inline-flex items-center gap-2 bg-white text-brand-700 text-base font-semibold py-3.5 px-7 rounded-xl"
-                  >
-                    <CalendarCheck className="w-5 h-5" />
-                    Agenda tu asesoría
-                  </a>
-                  <Link
-                    href="/portal"
-                    className="inline-flex items-center gap-2 border border-white/30 text-white text-base font-semibold py-3.5 px-7 rounded-xl hover:bg-white/10 transition-colors"
-                  >
-                    Ver el portal <ArrowRight className="w-5 h-5" />
-                  </Link>
-                </div>
-              </div>
+        {/* ============== 6. CTA FINAL (cierre navy, tipográfico) ============== */}
+        <section className="cta-final relative overflow-hidden bg-brand-900 pt-24 pb-24 lg:pt-36 lg:pb-32">
+          <div className="absolute top-[-30%] right-[-10%] w-[42rem] h-[42rem] glow-accent" aria-hidden />
+          <span
+            aria-hidden
+            className="cta-script absolute bottom-[-0.25em] right-[-2%] font-script text-accent-500/10 text-[18vw] leading-none whitespace-nowrap select-none pointer-events-none"
+          >
+            con María
+          </span>
+
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <span data-reveal className="block text-sm font-medium tracking-wide text-accent-400 mb-5">
+              ( conversemos )
+            </span>
+            <h2
+              data-reveal
+              className="font-display font-semibold tracking-tight text-white leading-[0.98] text-[clamp(2.9rem,8.5vw,7.5rem)] text-balance"
+            >
+              hablemos de
+              <br />
+              tus números.
+            </h2>
+            <p data-reveal className="mt-7 max-w-md text-lg text-brand-100/90">
+              Agenda una asesoría sin costo y empieza a ver tu contabilidad clara,
+              ordenada y siempre disponible.
+            </p>
+            <div data-reveal className="mt-10 flex flex-wrap gap-4">
+              <a
+                href="#contacto"
+                className="btn-glow inline-flex items-center gap-2 bg-white text-brand-700 text-base font-semibold py-3.5 px-7 rounded-full"
+              >
+                <CalendarCheck className="w-5 h-5" />
+                agenda tu asesoría
+              </a>
+              <Link
+                href="/portal"
+                className="inline-flex items-center gap-2 border border-white/25 text-white text-base font-semibold py-3.5 px-7 rounded-full hover:bg-white/10 transition-colors"
+              >
+                ver el portal <ArrowRight className="w-5 h-5" />
+              </Link>
             </div>
           </div>
         </section>
       </main>
 
       {/* ============== FOOTER ============== */}
-      <footer id="contacto" className="bg-slate-900 text-slate-300 pt-16 pb-10">
+      <footer id="contacto" className="bg-brand-900 text-slate-300 pt-16 pb-10 border-t border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-8">
           <div className="col-span-2 md:col-span-1">
             <BrandMark light />
@@ -867,7 +1162,7 @@ export default function Home() {
             </p>
           </div>
           <div>
-            <h4 className="text-white font-semibold mb-4">Servicios</h4>
+            <h4 className="text-white font-semibold mb-4">servicios</h4>
             <ul className="space-y-2.5 text-sm">
               <li><a href="#servicios" className="hover:text-white transition-colors">Contabilidad mensual</a></li>
               <li><a href="#servicios" className="hover:text-white transition-colors">Impuestos (F29, F22)</a></li>
@@ -876,7 +1171,7 @@ export default function Home() {
             </ul>
           </div>
           <div>
-            <h4 className="text-white font-semibold mb-4">Recursos</h4>
+            <h4 className="text-white font-semibold mb-4">recursos</h4>
             <ul className="space-y-2.5 text-sm">
               <li><Link href="/portal" className="hover:text-white transition-colors">Portal de clientes</Link></li>
               <li><a href="#portal" className="hover:text-white transition-colors">¿Cómo funciona?</a></li>
@@ -884,16 +1179,25 @@ export default function Home() {
             </ul>
           </div>
           <div>
-            <h4 className="text-white font-semibold mb-4">Contacto</h4>
+            <h4 className="text-white font-semibold mb-4">contacto</h4>
             <ul className="space-y-2.5 text-sm">
-              <li className="flex items-center gap-2"><MapPin className="w-4 h-4 text-brand-400" /> Oficina Central, Ciudad</li>
-              <li className="flex items-center gap-2"><Mail className="w-4 h-4 text-brand-400" /> contabilidad@mmellado.com</li>
-              <li className="flex items-center gap-2"><Phone className="w-4 h-4 text-brand-400" /> +56 9 1234 5678</li>
+              <li className="flex items-center gap-2 min-w-0">
+                <MapPin className="w-4 h-4 text-brand-400 flex-shrink-0" />
+                <span className="break-words">Oficina Central, Ciudad</span>
+              </li>
+              <li className="flex items-center gap-2 min-w-0">
+                <Mail className="w-4 h-4 text-brand-400 flex-shrink-0" />
+                <span className="break-all">contabilidad@mmellado.com</span>
+              </li>
+              <li className="flex items-center gap-2 min-w-0">
+                <Phone className="w-4 h-4 text-brand-400 flex-shrink-0" />
+                <span className="break-words">+56 9 1234 5678</span>
+              </li>
             </ul>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-8 pb-6 lg:pb-10 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
           <p>© 2026 Contabilidad con María. Todos los derechos reservados.</p>
           <p className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse-dot" />
@@ -901,6 +1205,31 @@ export default function Home() {
           </p>
         </div>
       </footer>
+
+      {/* ============== PESTAÑA LATERAL FIJA (acceso al portal) ============== */}
+      <Link
+        href="/portal"
+        className="hidden lg:flex fixed right-0 top-1/2 -translate-y-1/2 z-40 items-center gap-1.5 bg-brand-900 hover:bg-brand-700 text-white text-xs font-semibold tracking-[0.14em] px-2.5 py-5 rounded-l-2xl shadow-lg transition-colors [writing-mode:vertical-rl] rotate-180"
+      >
+        acceso clientes
+      </Link>
+
+      {/* ============== MARCO FIJO INFERIOR (progreso de scroll) ============== */}
+      <div
+        aria-hidden
+        className="hidden lg:flex fixed bottom-0 inset-x-0 z-40 h-11 px-6 items-center justify-between text-[11px] font-medium tracking-wider pointer-events-none mix-blend-difference text-white/75"
+      >
+        <span>contabilidad — impuestos — remuneraciones</span>
+        <span className="flex items-center gap-3">
+          scroll
+          <span className="relative block h-px w-28 bg-white/30 overflow-hidden">
+            <span ref={lineRef} className="absolute inset-0 origin-left scale-x-0 bg-white" />
+          </span>
+          <span ref={pctRef} className="tabular-nums w-9 text-right">
+            0%
+          </span>
+        </span>
+      </div>
     </div>
   );
 }

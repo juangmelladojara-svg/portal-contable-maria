@@ -92,6 +92,17 @@ body {
     padding-inline: 0.05em;
   }
 
+  /* ---------- Palabra gigante de fondo (solo contorno) ---------- */
+  .text-stroke-brand {
+    color: transparent;
+    -webkit-text-stroke: 1.5px rgba(28, 65, 115, 0.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    .text-stroke-brand {
+      -webkit-text-stroke: 1.5px rgba(126, 176, 213, 0.14);
+    }
+  }
+
   /* ---------- Micro-interacciones ---------- */
   .card-lift {
     @apply transition-all duration-300 ease-out;
