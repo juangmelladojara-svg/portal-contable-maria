@@ -24,13 +24,26 @@ import {
   Building2,
   Server,
   Mail,
-  Phone,
   Sparkles,
 } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
 
 // Página de reservas de Google Calendar (Ajustes → Programación de citas)
 const GOOGLE_CALENDAR_URL = "https://calendar.app.google/st8J2gHf42X8AAk89";
+
+// WhatsApp de contacto, con mensaje prellenado según el origen del clic
+const WHATSAPP_NUMERO = "56958508710";
+const whatsappUrl = (mensaje: string) =>
+  `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(mensaje)}`;
+
+/** Logo de WhatsApp (lucide no incluye iconos de marca). */
+function WhatsAppIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.074-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z" />
+    </svg>
+  );
+}
 
 // Logos reales de clientes — guardar cada archivo en public/clientes/<file>.png
 const clientes = [
@@ -540,16 +553,17 @@ export default function Home() {
               className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-brand-600 transition-colors px-3 py-2"
             >
               <LogIn className="w-4 h-4" />
-              acceso clientes
+              Acceso clientes
             </Link>
             <a
               href={GOOGLE_CALENDAR_URL}
               target="_blank"
               rel="noopener noreferrer"
+              aria-label="Agenda una asesoría (abre Google Calendar en una pestaña nueva)"
               className="btn-glow inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold py-2 px-3.5 sm:py-2.5 sm:px-5 rounded-full whitespace-nowrap"
             >
-              <span className="sm:hidden">agenda</span>
-              <span className="hidden sm:inline">agenda asesoría</span>
+              <span className="sm:hidden">Agenda</span>
+              <span className="hidden sm:inline">Agenda asesoría</span>
               <ArrowRight className="w-4 h-4 shrink-0" />
             </a>
           </div>
@@ -653,7 +667,7 @@ export default function Home() {
 
             {/* Lead mínimo + un solo CTA (escaso, estilo Sofi) */}
             <p className="hero-sub mt-8 lg:mt-10 max-w-sm text-base lg:text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
-              contabilidad, remuneraciones y asesoría tributaria para pymes — con un
+              Contabilidad, remuneraciones y asesoría tributaria para pymes — con un
               portal donde descargas todo al instante.
             </p>
             <div className="hero-sub mt-7 flex flex-wrap items-center gap-4">
@@ -661,16 +675,17 @@ export default function Home() {
                 href={GOOGLE_CALENDAR_URL}
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="Agenda una asesoría (abre Google Calendar en una pestaña nueva)"
                 className="btn-glow inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-base font-semibold py-3.5 px-7 rounded-full"
               >
                 <CalendarCheck className="w-5 h-5" />
-                agenda una asesoría
+                Agenda una asesoría
               </a>
               <Link
                 href="/portal"
                 className="inline-flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-white py-3.5 px-2 group"
               >
-                conoce el portal
+                Conoce el portal
                 <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
               </Link>
             </div>
@@ -717,7 +732,7 @@ export default function Home() {
           </span>
 
           <p className="relative text-sm font-medium tracking-wide text-slate-400 mb-14 lg:mb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-            ( empresas que confían su contabilidad a María )
+            ( Empresas que confían su contabilidad a María )
           </p>
           <div className="relative flex overflow-x-hidden">
             {[0, 1].map((track) => (
@@ -742,7 +757,7 @@ export default function Home() {
               <div data-reveal className="grid lg:grid-cols-12 gap-4 lg:gap-8 items-end mb-8">
                 <div className="lg:col-span-8">
                   <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight leading-[1.04] text-slate-900 dark:text-white text-balance">
-                    conoce el portal por dentro
+                    Conoce el portal por dentro
                   </h2>
                 </div>
                 <p className="lg:col-span-4 text-base text-slate-600 dark:text-slate-400 max-w-md lg:justify-self-end lg:pb-1">
@@ -804,7 +819,7 @@ export default function Home() {
                       >
                         0{i + 1}
                       </span>
-                      {t.label.toLowerCase()}
+                      {t.label}
                       <span
                         className={`hidden lg:block h-px transition-all duration-500 ${
                           portalTab === i ? "w-10 bg-accent-500" : "w-4 bg-slate-200 dark:bg-slate-800"
@@ -822,7 +837,7 @@ export default function Home() {
         <section id="servicios" className="py-24 lg:py-32 bg-slate-50 dark:bg-slate-950">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <SectionHead
-              title="todo tu back-office contable, resuelto"
+              title="Todo tu back-office contable, resuelto"
               lead="Nos hacemos cargo de los números para que tú te enfoques en crecer."
             />
 
@@ -943,7 +958,7 @@ export default function Home() {
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <SectionHead
               tag="integraciones"
-              title="conectada con todo el ecosistema tributario"
+              title="Conectada con todo el ecosistema tributario"
               lead="Sincronizamos tu información con las instituciones que importan, y la dejamos lista en tu portal."
             />
 
@@ -1020,7 +1035,7 @@ export default function Home() {
         <section id="planes" className="py-24 lg:py-32 bg-slate-50 dark:bg-slate-950">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <SectionHead
-              title="un plan para cada etapa de tu empresa"
+              title="Un plan para cada etapa de tu empresa"
               lead="Más que contabilidad, información clara para tomar mejores decisiones y pagar lo justo en impuestos."
             />
 
@@ -1079,7 +1094,14 @@ export default function Home() {
                       {p.ideal}
                     </p>
                     <a
-                      href="#contacto"
+                      href={whatsappUrl(
+                        p.custom
+                          ? `Hola María, me interesa una cotización personalizada del plan ${p.nombre}.`
+                          : `Hola María, me interesa contratar el plan ${p.nombre}.`
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`${p.custom ? "Solicitar cotización" : "Contratar plan"} ${p.nombre} por WhatsApp (abre en una pestaña nueva)`}
                       className={`inline-flex w-full items-center justify-center gap-1.5 text-sm font-semibold py-2.5 px-4 rounded-lg transition-colors ${
                         p.popular
                           ? "btn-glow bg-brand-600 hover:bg-brand-700 text-white"
@@ -1132,20 +1154,17 @@ export default function Home() {
           <div className="absolute top-[-30%] right-[-10%] w-[42rem] h-[42rem] glow-accent" aria-hidden />
           <span
             aria-hidden
-            className="cta-script absolute bottom-[-0.25em] right-[-2%] font-script text-accent-500/10 text-[18vw] leading-none whitespace-nowrap select-none pointer-events-none"
+            className="cta-script absolute bottom-[-0.2em] right-[4%] font-script text-accent-500/10 text-[15vw] leading-none whitespace-nowrap select-none pointer-events-none"
           >
             con María
           </span>
 
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <span data-reveal className="block text-sm font-medium tracking-wide text-accent-400 mb-5">
-              ( conversemos )
-            </span>
             <h2
               data-reveal
               className="font-display font-semibold tracking-tight text-white leading-[0.98] text-[clamp(2.9rem,8.5vw,7.5rem)] text-balance"
             >
-              hablemos de
+              Hablemos de
               <br />
               tus números.
             </h2>
@@ -1158,16 +1177,17 @@ export default function Home() {
                 href={GOOGLE_CALENDAR_URL}
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="Agenda tu asesoría (abre Google Calendar en una pestaña nueva)"
                 className="btn-glow inline-flex items-center gap-2 bg-white text-brand-700 text-base font-semibold py-3.5 px-7 rounded-full"
               >
                 <CalendarCheck className="w-5 h-5" />
-                agenda tu asesoría
+                Agenda tu asesoría
               </a>
               <Link
                 href="/portal"
                 className="inline-flex items-center gap-2 border border-white/25 text-white text-base font-semibold py-3.5 px-7 rounded-full hover:bg-white/10 transition-colors"
               >
-                ver el portal <ArrowRight className="w-5 h-5" />
+                Ver el portal <ArrowRight className="w-5 h-5" />
               </Link>
             </div>
           </div>
@@ -1197,7 +1217,6 @@ export default function Home() {
             <ul className="space-y-2.5 text-sm">
               <li><Link href="/portal" className="hover:text-white transition-colors">Portal de clientes</Link></li>
               <li><a href="#portal" className="hover:text-white transition-colors">¿Cómo funciona?</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Términos y privacidad</a></li>
             </ul>
           </div>
           <div>
@@ -1205,14 +1224,17 @@ export default function Home() {
             <ul className="space-y-2.5 text-sm">
               <li className="flex items-center gap-2 min-w-0">
                 <Mail className="w-4 h-4 text-brand-400 flex-shrink-0" />
-                <span className="break-all">contabilidad@mmellado.com</span>
+                <a href="mailto:contabilidad@mmellado.com" className="break-all hover:text-white transition-colors">
+                  contabilidad@mmellado.com
+                </a>
               </li>
               <li className="flex items-center gap-2 min-w-0">
-                <Phone className="w-4 h-4 text-brand-400 flex-shrink-0" />
+                <WhatsAppIcon className="w-4 h-4 text-brand-400 flex-shrink-0" />
                 <a
-                  href="https://wa.me/56958508710"
+                  href={whatsappUrl("Hola María, vengo del sitio web y me gustaría más información.")}
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label="Escribir por WhatsApp al +56 9 5850 8710 (abre en una pestaña nueva)"
                   className="break-words hover:text-white transition-colors"
                 >
                   +56 9 5850 8710
@@ -1224,10 +1246,6 @@ export default function Home() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-8 pb-6 lg:pb-10 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
           <p>© 2026 Contabilidad con María. Todos los derechos reservados.</p>
-          <p className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse-dot" />
-            Todos los sistemas operativos
-          </p>
         </div>
       </footer>
 
@@ -1236,7 +1254,7 @@ export default function Home() {
         href="/portal"
         className="hidden lg:flex fixed right-0 top-1/2 -translate-y-1/2 z-40 items-center gap-1.5 bg-brand-900 hover:bg-brand-700 text-white text-xs font-semibold tracking-[0.14em] px-2.5 py-5 rounded-l-2xl shadow-lg transition-colors [writing-mode:vertical-rl] rotate-180"
       >
-        acceso clientes
+        Acceso clientes
       </Link>
 
       {/* ============== MARCO FIJO INFERIOR (progreso de scroll) ============== */}
