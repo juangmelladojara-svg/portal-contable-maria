@@ -13,11 +13,7 @@ const nextConfig: NextConfig = {
 
   images: {
     // Permitir servir imágenes desde el bucket público de Supabase Storage.
-    remotePatterns: [
-      { protocol: "https", hostname: "*.supabase.co" },
-      // Placeholder de foto del hero (reemplazar por imagen propia luego).
-      { protocol: "https", hostname: "images.unsplash.com" },
-    ],
+    remotePatterns: [{ protocol: "https", hostname: "*.supabase.co" }],
   },
 };
 

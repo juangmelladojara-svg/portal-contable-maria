@@ -1,5 +1,10 @@
 # Migración a Vercel + Supabase — Guía de pasos
 
+> **Estado: Fases 1 y 2 completas y en producción** desde 2026-06-22.
+> Este documento queda como registro histórico de los pasos ya ejecutados
+> (útil si hay que rehacer el setup en otro proyecto Supabase). El estado
+> actual del proyecto vive en [`README.md`](README.md).
+
 Esta guía cubre **lo que TÚ debes hacer en los paneles** (yo ya dejé todo el código listo).
 Sigue los bloques en orden. La Fase 1 deja el **login real funcionando**.
 
@@ -98,14 +103,26 @@ npm run dev
    agrega tu URL de Vercel en **Site URL** y en **Redirect URLs**
    (`https://tu-app.vercel.app/portal/actualizar-clave`).
 
-> ⚠️ El deploy de GitHub Pages queda obsoleto: esta app ya necesita servidor.
-> Puedes borrar el workflow `.github/workflows/manual.yml` cuando Vercel esté andando.
+> ⚠️ El deploy de GitHub Pages quedó obsoleto: esta app ya necesita servidor.
+> El workflow `.github/workflows/manual.yml` y sus artefactos (`out/`, `nextjs-workflow.txt`)
+> se eliminaron del repo — ver [`README.md`](README.md) para el estado actual del despliegue.
 
 ---
 
-## ⏭️ Pendiente para Fase 2
+## ✅ Fase 2 — completada (2026-06-22)
 
-- Subida real de PDFs a Storage (panel admin) + descarga por cliente.
-- Métricas financieras leídas desde `metricas_mensuales`.
-- ABM de clientes y alta de usuarios desde el panel admin (usando `service_role`).
-- Quitar el `robots: noindex` de `layout.tsx` al pasar a producción.
+- Subida real de PDFs a Storage (panel admin) + descarga por cliente con URL firmada.
+- Métricas financieras leídas y cargadas desde `metricas_mensuales`.
+- ABM de clientes y alta de usuarios desde el panel admin, vía `/api/admin/*` con `service_role`.
+- `robots: noindex` de `layout.tsx` eliminado (2026-07-03), reemplazado por `src/app/robots.ts`
+  que permite indexar la landing y bloquea `/portal` y `/api`.
+
+## ✅ Fase 3 — landing y contacto (2026-06-25 a 2026-07-03)
+
+- Rediseño completo de la landing (hero cinematográfico, scroll con inercia vía Lenis,
+  escena anclada del portal, prueba social con logos reales de clientes).
+- Botones de "agenda una asesoría" → página de reservas de Google Calendar (no Calendly).
+- Contacto por WhatsApp con mensaje prellenado (footer y CTAs de planes), email con `mailto:`.
+- Auditoría del panel admin y de la sección de cierre de la landing, con fixes aplicados
+  (ver historial de commits para el detalle).
+- Dominio propio `conmaria.cl` en proceso de compra/conexión — ver `README.md`.
