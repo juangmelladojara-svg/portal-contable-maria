@@ -587,7 +587,7 @@ export default function Home() {
                   <span className="w-3 h-3 rounded-full bg-red-400" />
                   <span className="w-3 h-3 rounded-full bg-amber-400" />
                   <span className="w-3 h-3 rounded-full bg-green-400" />
-                  <span className="ml-3 text-xs font-mono text-slate-400 truncate">portal.contabilidadconmaria.cl</span>
+                  <span className="ml-3 text-xs font-mono text-slate-400 truncate">conmaria.cl</span>
                 </div>
                 <div className="relative aspect-[16/10]">
                   <Image
@@ -781,7 +781,7 @@ export default function Home() {
                     <span className="w-3 h-3 rounded-full bg-red-400" />
                     <span className="w-3 h-3 rounded-full bg-amber-400" />
                     <span className="w-3 h-3 rounded-full bg-green-400" />
-                    <span className="ml-3 text-xs font-mono text-slate-400 truncate">portal.contabilidadconmaria.cl</span>
+                    <span className="ml-3 text-xs font-mono text-slate-400 truncate">conmaria.cl</span>
                   </div>
                   <div className="relative aspect-[16/10]">
                     {portalTabs.map((t, i) => (
