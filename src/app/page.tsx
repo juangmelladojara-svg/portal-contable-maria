@@ -27,6 +27,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
+import IntroSplash from "@/components/IntroSplash";
 
 // Página de reservas de Google Calendar (Ajustes → Programación de citas)
 const GOOGLE_CALENDAR_URL = "https://calendar.app.google/st8J2gHf42X8AAk89";
@@ -534,6 +535,8 @@ export default function Home() {
 
   return (
     <div ref={root} className="flex flex-col min-h-screen">
+      <IntroSplash />
+
       {/* ============== 1. NAVBAR ============== */}
       <header className="fixed top-0 inset-x-0 z-50 glass border-b border-slate-200/60 dark:border-slate-800/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
