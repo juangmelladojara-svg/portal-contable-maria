@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Building2,
   UserPlus,
@@ -19,6 +19,8 @@ import {
   BarChart3,
   Pencil,
   X,
+  Image as ImageIcon,
+  UploadCloud,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { resolverCategoria } from "@/lib/categorias";
@@ -47,6 +49,13 @@ interface Agg {
   usersCount: number;
   lastUpload: string | null;
   docs: DocLite[];
+}
+
+interface LogoCliente {
+  id: string;
+  nombre: string;
+  logo_url: string;
+  orden: number;
 }
 
 const formatSize = (bytes: number) => {
@@ -90,6 +99,16 @@ export default function AdminClientesPage() {
   const [editRut, setEditRut] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
 
+  // Logos de la cinta del landing
+  const [logos, setLogos] = useState<LogoCliente[]>([]);
+  const [loadingLogos, setLoadingLogos] = useState(true);
+  const [logoNombre, setLogoNombre] = useState("");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const logoFileInputRef = useRef<HTMLInputElement>(null);
+  const [savingLogo, setSavingLogo] = useState(false);
+  const [deletingLogoId, setDeletingLogoId] = useState<string | null>(null);
+  const [msgLogo, setMsgLogo] = useState<{ ok: boolean; text: string } | null>(null);
+
   const cargarTodo = useCallback(async () => {
     setLoading(true);
     const [{ data: cs }, { data: docs }, { data: mets }, { data: perfiles }] = await Promise.all([
@@ -126,9 +145,20 @@ export default function AdminClientesPage() {
     setLoading(false);
   }, [supabase, uClienteId]);
 
+  const cargarLogos = useCallback(async () => {
+    setLoadingLogos(true);
+    const { data } = await supabase
+      .from("logos_clientes")
+      .select("id, nombre, logo_url, orden")
+      .order("orden");
+    setLogos((data as LogoCliente[]) ?? []);
+    setLoadingLogos(false);
+  }, [supabase]);
+
   useEffect(() => {
     cargarTodo();
-  }, [cargarTodo]);
+    cargarLogos();
+  }, [cargarTodo, cargarLogos]);
 
   const handleCrearCliente = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -247,6 +277,79 @@ export default function AdminClientesPage() {
     setMsgEmpresa({ ok: true, text: `Empresa actualizada correctamente.` });
     setEditingId(null);
     await cargarTodo();
+  };
+
+  const handleAgregarLogo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMsgLogo(null);
+    if (!logoNombre.trim()) {
+      setMsgLogo({ ok: false, text: "Escribe el nombre de la empresa." });
+      return;
+    }
+    if (!logoFile) {
+      setMsgLogo({ ok: false, text: "Selecciona la imagen del logo." });
+      return;
+    }
+    setSavingLogo(true);
+
+    const safeName = logoFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${Date.now()}-${safeName}`;
+    const { error: uploadError } = await supabase.storage
+      .from("logos-clientes")
+      .upload(path, logoFile, { cacheControl: "3600", upsert: false });
+
+    if (uploadError) {
+      setSavingLogo(false);
+      setMsgLogo({ ok: false, text: `Error al subir la imagen: ${uploadError.message}` });
+      return;
+    }
+
+    const { data: pub } = supabase.storage.from("logos-clientes").getPublicUrl(path);
+    const siguienteOrden = logos.length > 0 ? Math.max(...logos.map((l) => l.orden)) + 1 : 0;
+
+    const { error: insertError } = await supabase.from("logos_clientes").insert({
+      nombre: logoNombre.trim(),
+      logo_url: pub.publicUrl,
+      orden: siguienteOrden,
+    });
+
+    setSavingLogo(false);
+    if (insertError) {
+      await supabase.storage.from("logos-clientes").remove([path]);
+      setMsgLogo({ ok: false, text: `Error: ${insertError.message}` });
+      return;
+    }
+
+    setMsgLogo({ ok: true, text: `Logo de "${logoNombre}" agregado a la cinta del landing.` });
+    setLogoNombre("");
+    setLogoFile(null);
+    if (logoFileInputRef.current) logoFileInputRef.current.value = "";
+    await cargarLogos();
+  };
+
+  const handleEliminarLogo = async (l: LogoCliente) => {
+    const ok = window.confirm(`¿Eliminar el logo de "${l.nombre}" de la cinta del landing?`);
+    if (!ok) return;
+    setDeletingLogoId(l.id);
+    setMsgLogo(null);
+
+    // Si el logo fue subido desde el panel (vive en el bucket logos-clientes),
+    // también borramos el archivo. Los logos originales viven en /public y no aplica.
+    const marker = "/storage/v1/object/public/logos-clientes/";
+    const idx = l.logo_url.indexOf(marker);
+    if (idx !== -1) {
+      const path = decodeURIComponent(l.logo_url.slice(idx + marker.length));
+      await supabase.storage.from("logos-clientes").remove([path]);
+    }
+
+    const { error } = await supabase.from("logos_clientes").delete().eq("id", l.id);
+    setDeletingLogoId(null);
+    if (error) {
+      setMsgLogo({ ok: false, text: `Error: ${error.message}` });
+      return;
+    }
+    setMsgLogo({ ok: true, text: `Logo de "${l.nombre}" eliminado.` });
+    await cargarLogos();
   };
 
   const inputCls =
@@ -371,6 +474,93 @@ export default function AdminClientesPage() {
               El usuario podrá entrar de inmediato con ese correo y contraseña. Recomiéndale cambiarla en su primer ingreso.
             </p>
           </form>
+        </div>
+      </div>
+
+      {/* Logos en la cinta del landing */}
+      <div className="glass-card rounded-2xl overflow-hidden">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 flex items-center gap-2">
+          <ImageIcon className="w-4 h-4 text-brand-600" />
+          <h2 className="font-semibold text-slate-800 dark:text-slate-200">Logos en la cinta del landing</h2>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <p className="text-sm text-slate-500 dark:text-slate-400 -mt-2">
+            Empresas que aparecen en la cinta de logos de la página principal. No requieren usuario ni acceso al portal.
+          </p>
+
+          <form onSubmit={handleAgregarLogo} className="grid sm:grid-cols-[1fr_auto_auto] gap-3 items-start">
+            {msgLogo && (
+              <div className="sm:col-span-3">
+                <Mensaje m={msgLogo} />
+              </div>
+            )}
+            <input
+              value={logoNombre}
+              onChange={(e) => setLogoNombre(e.target.value)}
+              className={inputCls}
+              placeholder="Nombre de la empresa"
+            />
+            <label
+              className={`inline-flex items-center gap-2 rounded-lg border border-dashed px-3 py-2 text-sm cursor-pointer transition-colors ${
+                logoFile
+                  ? "border-brand-400 text-brand-600 bg-brand-50 dark:bg-brand-950/30"
+                  : "border-slate-300 dark:border-slate-700 text-slate-500 hover:border-brand-400 hover:text-brand-600"
+              }`}
+            >
+              <UploadCloud className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate max-w-[140px]">{logoFile ? logoFile.name : "Elegir imagen"}</span>
+              <input
+                ref={logoFileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                className="sr-only"
+                onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={savingLogo}
+              className="btn-glow inline-flex justify-center items-center gap-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 px-4 disabled:opacity-60 whitespace-nowrap"
+            >
+              {savingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              Agregar
+            </button>
+          </form>
+
+          {loadingLogos ? (
+            <div className="py-6 text-center text-sm text-slate-500">Cargando…</div>
+          ) : logos.length === 0 ? (
+            <div className="py-6 text-center text-sm text-slate-500">Aún no hay logos en la cinta.</div>
+          ) : (
+            <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {logos.map((l) => (
+                <li
+                  key={l.id}
+                  className="group relative flex flex-col items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/40 p-3"
+                >
+                  <button
+                    onClick={() => handleEliminarLogo(l)}
+                    disabled={deletingLogoId === l.id}
+                    title="Eliminar logo"
+                    aria-label={`Eliminar logo de ${l.nombre}`}
+                    className="absolute top-1.5 right-1.5 inline-flex items-center justify-center w-6 h-6 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-60"
+                  >
+                    {deletingLogoId === l.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  </button>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={l.logo_url}
+                    alt={l.nombre}
+                    className="h-12 w-full object-contain grayscale opacity-80 group-hover:opacity-100 group-hover:grayscale-0 transition"
+                  />
+                  <span className="text-xs text-center text-slate-500 dark:text-slate-400 truncate w-full" title={l.nombre}>
+                    {l.nombre}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 

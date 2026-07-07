@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
 import IntroSplash from "@/components/IntroSplash";
+import { createClient } from "@/lib/supabase/client";
 
 // Página de reservas de Google Calendar (Ajustes → Programación de citas)
 const GOOGLE_CALENDAR_URL = "https://calendar.app.google/st8J2gHf42X8AAk89";
@@ -46,19 +47,11 @@ function WhatsAppIcon({ className }: { className?: string }) {
   );
 }
 
-// Logos reales de clientes — guardar cada archivo en public/clientes/<file>.png
-const clientes = [
-  { name: "Paola Zamorán · Fonoaudiología", file: "paola-zamoran" },
-  { name: "Dilo Conmigo", file: "dilo-conmigo" },
-  { name: "Hostal Beraca", file: "hostal-beraca" },
-  { name: "Panda", file: "panda" },
-  { name: "The Chicken Grill", file: "chicken-grill" },
-  { name: "Bake House", file: "bake-house" },
-  { name: "Survial", file: "survial" },
-  { name: "MediFilter", file: "medifilter" },
-  { name: "NeuroStep", file: "neurostep" },
-  { name: "Coliseo · Constructora Bizama", file: "coliseo" },
-];
+interface LogoCliente {
+  id: string;
+  nombre: string;
+  logo_url: string;
+}
 
 // Vistas del portal (pestañas interactivas) — pantallazos reales en public/portal/
 const portalTabs = [
@@ -191,41 +184,24 @@ const factoresRenta = [
   "Revisión y análisis de la información tributaria del ejercicio.",
 ];
 
-/** Logo de cliente (acepta png/jpg/jpeg/webp); si no existe, muestra el nombre. */
-function ClientLogo({ c }: { c: { name: string; file: string } }) {
-  const [src, setSrc] = useState<string | null>(null);
+/** Logo de cliente (viene de Supabase); si la imagen falla, muestra el nombre. */
+function ClientLogo({ c }: { c: LogoCliente }) {
+  const [failed, setFailed] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      for (const ext of ["png", "jpg", "jpeg", "webp"]) {
-        const url = `/clientes/${c.file}.${ext}`;
-        const found = await new Promise<string | null>((res) => {
-          const img = new window.Image();
-          img.onload = () => res(url);
-          img.onerror = () => res(null);
-          img.src = url;
-        });
-        if (cancelled) return;
-        if (found) { setSrc(found); return; }
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [c.file]);
-
-  if (!src) {
+  if (failed) {
     return (
       <span className="text-lg md:text-xl font-bold text-slate-300 dark:text-slate-700 whitespace-nowrap shrink-0">
-        {c.name.split(" · ")[0]}
+        {c.nombre.split(" · ")[0]}
       </span>
     );
   }
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={src}
-      alt={c.name}
-      title={c.name}
+      src={c.logo_url}
+      alt={c.nombre}
+      title={c.nombre}
+      onError={() => setFailed(true)}
       className="h-14 md:h-20 w-auto object-contain grayscale opacity-60 hover:opacity-100 hover:grayscale-0 transition duration-300 shrink-0"
     />
   );
@@ -253,11 +229,22 @@ function SectionHead({ tag, title, lead }: { tag?: string; title: string; lead: 
 export default function Home() {
   const root = useRef<HTMLDivElement>(null);
   const [portalTab, setPortalTab] = useState(0);
+  const [logosClientes, setLogosClientes] = useState<LogoCliente[]>([]);
   const pctRef = useRef<HTMLSpanElement>(null);
   const lineRef = useRef<HTMLSpanElement>(null);
   const lenisRef = useRef<Lenis | null>(null);
   const portalSTRef = useRef<ScrollTrigger | null>(null);
   const portalTabRef = useRef(0);
+
+  // Logos de la cinta "Empresas que confían su contabilidad a María" (editables desde el panel admin)
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from("logos_clientes")
+      .select("id, nombre, logo_url")
+      .order("orden")
+      .then(({ data }) => setLogosClientes((data as LogoCliente[]) ?? []));
+  }, []);
 
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
@@ -744,8 +731,8 @@ export default function Home() {
                 aria-hidden={track === 1}
                 className={`flex items-center gap-12 md:gap-20 px-6 min-w-max ${track === 0 ? "animate-marquee" : "absolute top-0 left-0 animate-marquee2"}`}
               >
-                {clientes.map((c, i) => (
-                  <ClientLogo key={`${track}-${i}`} c={c} />
+                {logosClientes.map((c, i) => (
+                  <ClientLogo key={`${track}-${c.id ?? i}`} c={c} />
                 ))}
               </div>
             ))}
