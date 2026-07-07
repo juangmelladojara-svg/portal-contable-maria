@@ -25,6 +25,7 @@ import {
   Server,
   Mail,
   Sparkles,
+  AlertTriangle,
 } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
 import IntroSplash from "@/components/IntroSplash";
@@ -1114,6 +1115,10 @@ export default function Home() {
                 </h3>
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-accent-700 dark:text-accent-500 bg-accent-500/10 px-2.5 py-1 rounded-full">
                   Servicio adicional
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-red-700 dark:text-red-400 bg-red-500/10 px-2.5 py-1 rounded-full">
+                  <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2.5} />
+                  No incluido en la mensualidad
                 </span>
                 <span className="md:ml-auto text-sm font-semibold text-brand-700 dark:text-brand-300">
                   desde $150.000 + IVA
