@@ -186,12 +186,15 @@ const factoresRenta = [
 ];
 
 /** Logo de cliente (viene de Supabase); si la imagen falla, muestra el nombre. */
-function ClientLogo({ c }: { c: LogoCliente }) {
+function ClientLogo({ c, "aria-hidden": ariaHidden }: { c: LogoCliente; "aria-hidden"?: boolean }) {
   const [failed, setFailed] = useState(false);
 
   if (failed) {
     return (
-      <span className="text-lg md:text-xl font-bold text-slate-300 dark:text-slate-700 whitespace-nowrap shrink-0">
+      <span
+        aria-hidden={ariaHidden}
+        className="text-lg md:text-xl font-bold text-slate-300 dark:text-slate-700 whitespace-nowrap shrink-0"
+      >
         {c.nombre.split(" · ")[0]}
       </span>
     );
@@ -202,6 +205,7 @@ function ClientLogo({ c }: { c: LogoCliente }) {
       src={c.logo_url}
       alt={c.nombre}
       title={c.nombre}
+      aria-hidden={ariaHidden}
       onError={() => setFailed(true)}
       className="h-14 md:h-20 w-auto object-contain grayscale opacity-60 hover:opacity-100 hover:grayscale-0 transition duration-300 shrink-0"
     />
@@ -726,17 +730,13 @@ export default function Home() {
             ( Empresas que confían su contabilidad a María )
           </p>
           <div className="relative flex overflow-x-hidden">
-            {[0, 1].map((track) => (
-              <div
-                key={track}
-                aria-hidden={track === 1}
-                className={`flex items-center gap-12 md:gap-20 px-6 min-w-max ${track === 0 ? "animate-marquee" : "absolute top-0 left-0 animate-marquee2"}`}
-              >
-                {logosClientes.map((c, i) => (
-                  <ClientLogo key={`${track}-${c.id ?? i}`} c={c} />
-                ))}
-              </div>
-            ))}
+            <div className="flex items-center gap-12 md:gap-20 px-6 min-w-max animate-marquee">
+              {[0, 1].map((copy) =>
+                logosClientes.map((c, i) => (
+                  <ClientLogo key={`${copy}-${c.id ?? i}`} c={c} aria-hidden={copy === 1} />
+                ))
+              )}
+            </div>
           </div>
         </section>
 
