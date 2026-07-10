@@ -30,6 +30,8 @@ interface Cliente {
   razon_social: string;
   rut: string;
   created_at: string;
+  tag_remuneraciones: boolean;
+  tag_contabilidad: boolean;
 }
 
 interface DocLite {
@@ -116,7 +118,10 @@ export default function AdminClientesPage() {
   const cargarTodo = useCallback(async () => {
     setLoading(true);
     const [{ data: cs }, { data: docs }, { data: mets }, { data: perfiles }] = await Promise.all([
-      supabase.from("clientes").select("id, razon_social, rut, created_at").order("razon_social"),
+      supabase
+        .from("clientes")
+        .select("id, razon_social, rut, created_at, tag_remuneraciones, tag_contabilidad")
+        .order("razon_social"),
       supabase
         .from("documentos")
         .select("id, cliente_id, nombre, categoria, anio, mes, size_bytes, created_at, storage_path")
@@ -307,6 +312,18 @@ export default function AdminClientesPage() {
     setMsgEmpresa({ ok: true, text: `Empresa actualizada correctamente.` });
     setEditingId(null);
     await cargarTodo();
+  };
+
+  // Etiquetas de servicio (Remuneraciones / Contabilidad): definen a qué grupo
+  // de clientes le llega un evento agendado como "Todos" en el calendario.
+  const handleToggleTag = async (c: Cliente, campo: "tag_remuneraciones" | "tag_contabilidad") => {
+    const nuevoValor = !c[campo];
+    setClientes((prev) => prev.map((x) => (x.id === c.id ? { ...x, [campo]: nuevoValor } : x)));
+    const { error } = await supabase.from("clientes").update({ [campo]: nuevoValor }).eq("id", c.id);
+    if (error) {
+      setClientes((prev) => prev.map((x) => (x.id === c.id ? { ...x, [campo]: !nuevoValor } : x)));
+      setMsgEmpresa({ ok: false, text: `No se pudo actualizar la etiqueta: ${error.message}` });
+    }
   };
 
   const handleAgregarLogo = async (e: React.FormEvent) => {
@@ -648,6 +665,36 @@ export default function AdminClientesPage() {
                         <p className="text-xs text-slate-500">
                           {c.rut} · alta {new Date(c.created_at).toLocaleDateString("es-CL")}
                         </p>
+                      </div>
+                    )}
+
+                    {/* Etiquetas de servicio: definen a qué grupo llega un evento "Todos" del calendario */}
+                    {!editando && (
+                      <div className="hidden md:flex items-center gap-3 flex-shrink-0">
+                        <label
+                          className="inline-flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 cursor-pointer select-none"
+                          title="El cliente recibirá los eventos grupales de Remuneraciones"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={c.tag_remuneraciones}
+                            onChange={() => handleToggleTag(c, "tag_remuneraciones")}
+                            className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 text-brand-600 focus:ring-brand-500 focus:ring-offset-0"
+                          />
+                          Remuneraciones
+                        </label>
+                        <label
+                          className="inline-flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 cursor-pointer select-none"
+                          title="El cliente recibirá los eventos grupales de Contabilidad"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={c.tag_contabilidad}
+                            onChange={() => handleToggleTag(c, "tag_contabilidad")}
+                            className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 text-brand-600 focus:ring-brand-500 focus:ring-offset-0"
+                          />
+                          Contabilidad
+                        </label>
                       </div>
                     )}
 

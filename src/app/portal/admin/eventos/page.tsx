@@ -7,7 +7,11 @@ import { createClient } from "@/lib/supabase/client";
 interface Cliente {
   id: string;
   razon_social: string;
+  tag_remuneraciones: boolean;
+  tag_contabilidad: boolean;
 }
+
+const TODOS = "TODOS";
 
 interface Evento {
   id: string;
@@ -37,15 +41,17 @@ export default function AdminEventosPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const [clienteId, setClienteId] = useState("");
+  const [clienteId, setClienteId] = useState(TODOS);
   const [fecha, setFecha] = useState(hoyISO());
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
+  const [quiereRemuneraciones, setQuiereRemuneraciones] = useState(false);
+  const [quiereContabilidad, setQuiereContabilidad] = useState(false);
 
   const cargar = useCallback(async () => {
     setLoading(true);
     const [{ data: cs }, { data: ev }] = await Promise.all([
-      supabase.from("clientes").select("id, razon_social").order("razon_social"),
+      supabase.from("clientes").select("id, razon_social, tag_remuneraciones, tag_contabilidad").order("razon_social"),
       supabase
         .from("eventos")
         .select("id, cliente_id, fecha, titulo, descripcion, clientes(razon_social)")
@@ -53,9 +59,7 @@ export default function AdminEventosPage() {
         .order("fecha", { ascending: true })
         .limit(100),
     ]);
-    const lista = (cs as Cliente[]) ?? [];
-    setClientes(lista);
-    setClienteId((prev) => prev || (lista[0]?.id ?? ""));
+    setClientes((cs as Cliente[]) ?? []);
     setEventos((ev as unknown as Evento[]) ?? []);
     setLoading(false);
   }, [supabase]);
@@ -67,7 +71,7 @@ export default function AdminEventosPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMsg(null);
-    if (!clienteId) {
+    if (clientes.length === 0) {
       setMsg({ ok: false, text: "Crea una empresa primero en 'Clientes'." });
       return;
     }
@@ -75,19 +79,47 @@ export default function AdminEventosPage() {
       setMsg({ ok: false, text: "Escribe un título para el evento." });
       return;
     }
+
+    // A quién le llega: un cliente puntual, o -si es "Todos"- el grupo
+    // filtrado por las etiquetas marcadas (unión), o todos si no marcaste ninguna.
+    let destinatarios: Cliente[];
+    if (clienteId !== TODOS) {
+      const uno = clientes.find((c) => c.id === clienteId);
+      destinatarios = uno ? [uno] : [];
+    } else if (quiereRemuneraciones || quiereContabilidad) {
+      destinatarios = clientes.filter(
+        (c) => (quiereRemuneraciones && c.tag_remuneraciones) || (quiereContabilidad && c.tag_contabilidad)
+      );
+    } else {
+      destinatarios = clientes;
+    }
+
+    if (destinatarios.length === 0) {
+      setMsg({ ok: false, text: "Ningún cliente coincide con el filtro elegido." });
+      return;
+    }
+
     setSaving(true);
-    const { error } = await supabase.from("eventos").insert({
-      cliente_id: clienteId,
-      fecha,
-      titulo: titulo.trim(),
-      descripcion: descripcion.trim() || null,
-    });
+    const { error } = await supabase.from("eventos").insert(
+      destinatarios.map((c) => ({
+        cliente_id: c.id,
+        fecha,
+        titulo: titulo.trim(),
+        descripcion: descripcion.trim() || null,
+      }))
+    );
     setSaving(false);
     if (error) {
       setMsg({ ok: false, text: `Error: ${error.message}` });
       return;
     }
-    setMsg({ ok: true, text: `Evento "${titulo.trim()}" agendado.` });
+    setMsg({
+      ok: true,
+      text:
+        destinatarios.length === 1
+          ? `Evento "${titulo.trim()}" agendado para ${destinatarios[0].razon_social}.`
+          : `Evento "${titulo.trim()}" agendado para ${destinatarios.length} clientes.`,
+    });
     setTitulo("");
     setDescripcion("");
     await cargar();
@@ -143,11 +175,50 @@ export default function AdminEventosPage() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Cliente</label>
                 <select value={clienteId} onChange={(e) => setClienteId(e.target.value)} className={inputCls}>
-                  {clientes.length === 0 && <option value="">— Sin clientes —</option>}
+                  <option value={TODOS}>Todos los clientes</option>
                   {clientes.map((c) => (
                     <option key={c.id} value={c.id}>{c.razon_social}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">
+                  Filtrar el grupo &quot;Todos&quot; por etiqueta (opcional)
+                </p>
+                <div className="flex items-center gap-4">
+                  <label
+                    className={`inline-flex items-center gap-1.5 text-sm select-none ${
+                      clienteId === TODOS ? "text-slate-700 dark:text-slate-300 cursor-pointer" : "text-slate-400 dark:text-slate-600 cursor-not-allowed"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={quiereRemuneraciones}
+                      disabled={clienteId !== TODOS}
+                      onChange={(e) => setQuiereRemuneraciones(e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-brand-600 focus:ring-brand-500 focus:ring-offset-0 disabled:opacity-50"
+                    />
+                    Remuneraciones
+                  </label>
+                  <label
+                    className={`inline-flex items-center gap-1.5 text-sm select-none ${
+                      clienteId === TODOS ? "text-slate-700 dark:text-slate-300 cursor-pointer" : "text-slate-400 dark:text-slate-600 cursor-not-allowed"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={quiereContabilidad}
+                      disabled={clienteId !== TODOS}
+                      onChange={(e) => setQuiereContabilidad(e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-brand-600 focus:ring-brand-500 focus:ring-offset-0 disabled:opacity-50"
+                    />
+                    Contabilidad
+                  </label>
+                </div>
+                <p className="mt-1 text-xs text-slate-400">
+                  Sin marcar ninguna, el evento llega a todos. Marca una o ambas para acotarlo al grupo con esa etiqueta en &quot;Clientes&quot;.
+                </p>
               </div>
 
               <div>
