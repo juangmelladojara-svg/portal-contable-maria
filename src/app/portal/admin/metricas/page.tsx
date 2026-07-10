@@ -95,6 +95,32 @@ export default function AdminMetricasPage() {
     cargar();
   }, [cargar]);
 
+  // Al elegir un cliente/mes/año que ya tiene datos cargados, precarga el
+  // formulario con lo existente para poder corregirlo con contexto.
+  useEffect(() => {
+    if (!clienteId) return;
+    const periodo = `${anio}-${mes}`;
+    const existente = rows.find((r) => r.cliente_id === clienteId && r.periodo === periodo);
+    if (existente) {
+      setIngresos(String(existente.ingresos || ""));
+      setGastos(String(existente.gastos || ""));
+      setIva(String(existente.iva || ""));
+      setRemuneraciones(String(existente.remuneraciones || ""));
+      setPpm(String(existente.ppm || ""));
+      setVigCant(String(existente.contratos_vigentes_cant || ""));
+      setVigTotal(String(existente.contratos_vigentes_total || ""));
+      setFinCant(String(existente.finiquitos_cant || ""));
+      setFinTotal(String(existente.finiquitos_total || ""));
+      setNuevCant(String(existente.nuevos_contratos_cant || ""));
+      setNuevTotal(String(existente.nuevos_contratos_total || ""));
+    } else {
+      setIngresos(""); setGastos(""); setIva(""); setRemuneraciones("");
+      setPpm(""); setVigCant(""); setVigTotal(""); setFinCant(""); setFinTotal("");
+      setNuevCant(""); setNuevTotal("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clienteId, mes, anio, rows]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMsg(null);
@@ -104,22 +130,32 @@ export default function AdminMetricasPage() {
     }
     setSaving(true);
     const periodo = `${anio}-${mes}`;
+    // Si el período ya existía, una corrección parcial no debe borrar los
+    // campos que se dejaron en blanco: esos conservan el valor ya cargado.
+    const existente = rows.find((r) => r.cliente_id === clienteId && r.periodo === periodo);
+    const campo = (input: string, key: keyof MetricaRow) => {
+      const valor = Number(input) || 0;
+      if (valor === 0 && existente && Number(existente[key]) !== 0) {
+        return Number(existente[key]);
+      }
+      return valor;
+    };
     // upsert por (cliente_id, periodo): si ya existe, lo actualiza.
     const { error } = await supabase.from("metricas_mensuales").upsert(
       {
         cliente_id: clienteId,
         periodo,
-        ingresos: Number(ingresos) || 0,
-        gastos: Number(gastos) || 0,
-        iva: Number(iva) || 0,
-        remuneraciones: Number(remuneraciones) || 0,
-        ppm: Number(ppm) || 0,
-        contratos_vigentes_cant: Number(vigCant) || 0,
-        contratos_vigentes_total: Number(vigTotal) || 0,
-        finiquitos_cant: Number(finCant) || 0,
-        finiquitos_total: Number(finTotal) || 0,
-        nuevos_contratos_cant: Number(nuevCant) || 0,
-        nuevos_contratos_total: Number(nuevTotal) || 0,
+        ingresos: campo(ingresos, "ingresos"),
+        gastos: campo(gastos, "gastos"),
+        iva: campo(iva, "iva"),
+        remuneraciones: campo(remuneraciones, "remuneraciones"),
+        ppm: campo(ppm, "ppm"),
+        contratos_vigentes_cant: campo(vigCant, "contratos_vigentes_cant"),
+        contratos_vigentes_total: campo(vigTotal, "contratos_vigentes_total"),
+        finiquitos_cant: campo(finCant, "finiquitos_cant"),
+        finiquitos_total: campo(finTotal, "finiquitos_total"),
+        nuevos_contratos_cant: campo(nuevCant, "nuevos_contratos_cant"),
+        nuevos_contratos_total: campo(nuevTotal, "nuevos_contratos_total"),
       },
       { onConflict: "cliente_id,periodo" }
     );

@@ -41,6 +41,7 @@ interface DocLite {
   mes: string;
   size_bytes: number;
   created_at: string;
+  storage_path: string | null;
 }
 
 interface Agg {
@@ -93,6 +94,9 @@ export default function AdminClientesPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [msgEmpresa, setMsgEmpresa] = useState<{ ok: boolean; text: string } | null>(null);
 
+  // Eliminación de un documento individual
+  const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
+
   // Edición de empresa (razón social / RUT)
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editRazonSocial, setEditRazonSocial] = useState("");
@@ -115,7 +119,7 @@ export default function AdminClientesPage() {
       supabase.from("clientes").select("id, razon_social, rut, created_at").order("razon_social"),
       supabase
         .from("documentos")
-        .select("id, cliente_id, nombre, categoria, anio, mes, size_bytes, created_at")
+        .select("id, cliente_id, nombre, categoria, anio, mes, size_bytes, created_at, storage_path")
         .order("created_at", { ascending: false }),
       supabase.from("metricas_mensuales").select("id, cliente_id"),
       supabase.from("perfiles").select("id, cliente_id"),
@@ -243,6 +247,32 @@ export default function AdminClientesPage() {
       ok: true,
       text: `Empresa "${c.razon_social}" eliminada — ${json.archivosBorrados} archivo(s) y ${json.usuariosBorrados} usuario(s).`,
     });
+    await cargarTodo();
+  };
+
+  const handleEliminarDocumento = async (d: DocLite) => {
+    const ok = window.confirm(`¿Eliminar el archivo "${d.nombre}"?\n\nEsta acción no se puede deshacer.`);
+    if (!ok) return;
+
+    setDeletingDocId(d.id);
+    setMsgEmpresa(null);
+
+    if (d.storage_path) {
+      const { error: storageError } = await supabase.storage.from("documentos").remove([d.storage_path]);
+      if (storageError) {
+        setDeletingDocId(null);
+        setMsgEmpresa({ ok: false, text: `No se pudo borrar el archivo del storage: ${storageError.message}` });
+        return;
+      }
+    }
+
+    const { error } = await supabase.from("documentos").delete().eq("id", d.id);
+    setDeletingDocId(null);
+    if (error) {
+      setMsgEmpresa({ ok: false, text: `Error: ${error.message}` });
+      return;
+    }
+    setMsgEmpresa({ ok: true, text: `Archivo "${d.nombre}" eliminado.` });
     await cargarTodo();
   };
 
@@ -712,6 +742,7 @@ export default function AdminClientesPage() {
                                 <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Categoría</th>
                                 <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Período</th>
                                 <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Fecha</th>
+                                <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wider text-slate-500"></th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
@@ -732,6 +763,21 @@ export default function AdminClientesPage() {
                                     <td className="px-4 py-2 whitespace-nowrap text-xs text-slate-500">{d.anio} / {d.mes}</td>
                                     <td className="px-4 py-2 whitespace-nowrap text-right text-xs text-slate-500">
                                       {new Date(d.created_at).toLocaleDateString("es-CL")}
+                                    </td>
+                                    <td className="px-2 py-2 whitespace-nowrap text-right">
+                                      <button
+                                        onClick={() => handleEliminarDocumento(d)}
+                                        disabled={deletingDocId === d.id}
+                                        title="Eliminar archivo"
+                                        aria-label={`Eliminar ${d.nombre}`}
+                                        className="inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-60"
+                                      >
+                                        {deletingDocId === d.id ? (
+                                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        ) : (
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        )}
+                                      </button>
                                     </td>
                                   </tr>
                                 );
