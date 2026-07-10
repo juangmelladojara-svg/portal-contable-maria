@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { UploadCloud, FileText, CheckCircle2, Save, Loader2, AlertCircle, Trash2 } from "lucide-react";
+import { UploadCloud, FileText, CheckCircle2, Save, Loader2, AlertCircle, Trash2, Eye } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { CATEGORIAS, resolverCategoria } from "@/lib/categorias";
 
@@ -46,6 +46,7 @@ export default function AdminDashboard() {
   const [errorMsg, setErrorMsg] = useState("");
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [previewingId, setPreviewingId] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   const [clienteId, setClienteId] = useState("");
@@ -211,6 +212,26 @@ export default function AdminDashboard() {
     setSuccessMsg(`"${doc.nombre}" se eliminó correctamente.`);
     await cargarDocumentos();
     setTimeout(() => setSuccessMsg(""), 6000);
+  };
+
+  const handlePreview = async (doc: Documento) => {
+    if (!doc.storage_path) {
+      setErrorMsg("Este documento no tiene un archivo asociado para previsualizar.");
+      return;
+    }
+    setPreviewingId(doc.id);
+    setErrorMsg("");
+
+    const { data, error } = await supabase.storage
+      .from("documentos")
+      .createSignedUrl(doc.storage_path, 60);
+
+    setPreviewingId(null);
+    if (error || !data?.signedUrl) {
+      setErrorMsg(`No se pudo abrir el documento: ${error?.message ?? "error desconocido"}`);
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
 
   const selectCls =
@@ -435,19 +456,34 @@ export default function AdminDashboard() {
                             {new Date(doc.created_at).toLocaleDateString("es-CL")}
                           </td>
                           <td className="px-6 py-3 whitespace-nowrap text-right">
-                            <button
-                              onClick={() => handleDelete(doc)}
-                              disabled={deletingId === doc.id}
-                              title="Eliminar documento"
-                              aria-label={`Eliminar ${doc.nombre}`}
-                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-60"
-                            >
-                              {deletingId === doc.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="w-4 h-4" />
-                              )}
-                            </button>
+                            <div className="inline-flex items-center gap-1">
+                              <button
+                                onClick={() => handlePreview(doc)}
+                                disabled={previewingId === doc.id || !doc.storage_path}
+                                title="Previsualizar PDF"
+                                aria-label={`Previsualizar ${doc.nombre}`}
+                                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/40 transition-colors disabled:opacity-60"
+                              >
+                                {previewingId === doc.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Eye className="w-4 h-4" />
+                                )}
+                              </button>
+                              <button
+                                onClick={() => handleDelete(doc)}
+                                disabled={deletingId === doc.id}
+                                title="Eliminar documento"
+                                aria-label={`Eliminar ${doc.nombre}`}
+                                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-60"
+                              >
+                                {deletingId === doc.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
