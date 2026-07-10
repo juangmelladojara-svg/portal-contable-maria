@@ -134,11 +134,12 @@ export default function AdminMetricasPage() {
     // campos que se dejaron en blanco: esos conservan el valor ya cargado.
     const existente = rows.find((r) => r.cliente_id === clienteId && r.periodo === periodo);
     const campo = (input: string, key: keyof MetricaRow) => {
-      const valor = Number(input) || 0;
-      if (valor === 0 && existente && Number(existente[key]) !== 0) {
-        return Number(existente[key]);
+      // Casilla vacía = "no toqué esto" -> conserva el valor anterior (o 0 si no había).
+      // Casilla con un valor explícito (incluido "0") = respeta lo escrito, aunque sea 0.
+      if (input === "") {
+        return existente ? Number(existente[key]) || 0 : 0;
       }
-      return valor;
+      return Number(input) || 0;
     };
     // upsert por (cliente_id, periodo): si ya existe, lo actualiza.
     const { error } = await supabase.from("metricas_mensuales").upsert(
