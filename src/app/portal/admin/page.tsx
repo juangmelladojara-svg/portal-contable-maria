@@ -55,21 +55,33 @@ export default function AdminDashboard() {
   const [files, setFiles] = useState<File[]>([]);
   const [batch, setBatch] = useState<{ done: number; total: number } | null>(null);
 
-  // Cargar la lista de documentos (con el nombre de la empresa)
+  // Filtros del listado: por defecto, solo los documentos del cliente elegido arriba.
+  const [filtroAnio, setFiltroAnio] = useState("");
+  const [filtroCategoria, setFiltroCategoria] = useState("");
+
+  // Cargar los documentos del cliente seleccionado, aplicando los filtros de año/categoría.
   const cargarDocumentos = useCallback(async () => {
+    if (!clienteId) {
+      setDocuments([]);
+      return;
+    }
     setLoadingDocs(true);
-    const { data } = await supabase
+    let query = supabase
       .from("documentos")
       .select("id, nombre, categoria, anio, mes, size_bytes, storage_path, created_at, cliente_id, clientes(razon_social)")
+      .eq("cliente_id", clienteId)
       .order("created_at", { ascending: false })
-      .limit(100);
+      .limit(300);
+    if (filtroAnio) query = query.eq("anio", filtroAnio);
+    if (filtroCategoria) query = query.eq("categoria", filtroCategoria);
+    const { data } = await query;
     setDocuments((data as unknown as Documento[]) ?? []);
     setLoadingDocs(false);
-  }, [supabase]);
+  }, [supabase, clienteId, filtroAnio, filtroCategoria]);
 
-  // Cargar clientes + documentos al montar
+  // Cargar la lista de clientes al montar y seleccionar el primero por defecto.
   useEffect(() => {
-    const cargar = async () => {
+    const cargarClientes = async () => {
       const { data: cs } = await supabase
         .from("clientes")
         .select("id, razon_social, rut")
@@ -77,10 +89,14 @@ export default function AdminDashboard() {
       const lista = (cs as Cliente[]) ?? [];
       setClientes(lista);
       if (lista.length > 0) setClienteId(lista[0].id);
-      await cargarDocumentos();
     };
-    cargar();
-  }, [supabase, cargarDocumentos]);
+    cargarClientes();
+  }, [supabase]);
+
+  // Recargar el listado cuando cambia el cliente o alguno de los filtros.
+  useEffect(() => {
+    cargarDocumentos();
+  }, [cargarDocumentos]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -342,9 +358,35 @@ export default function AdminDashboard() {
         {/* Listado */}
         <div className="lg:col-span-2">
           <div className="glass-card rounded-2xl overflow-hidden h-full flex flex-col">
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 flex justify-between items-center">
-              <h2 className="font-semibold text-slate-800 dark:text-slate-200">Últimos documentos subidos</h2>
-              <span className="text-xs text-slate-500">{documents.length} archivos</span>
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="font-semibold text-slate-800 dark:text-slate-200">Documentos de este cliente</h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {clientes.find((c) => c.id === clienteId)?.razon_social ?? "—"} · {documents.length} archivo{documents.length === 1 ? "" : "s"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  value={filtroAnio}
+                  onChange={(e) => setFiltroAnio(e.target.value)}
+                  className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                >
+                  <option value="">Todos los años</option>
+                  {["2024", "2025", "2026"].map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+                <select
+                  value={filtroCategoria}
+                  onChange={(e) => setFiltroCategoria(e.target.value)}
+                  className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                >
+                  <option value="">Todas las categorías</option>
+                  {CATEGORIAS.map((c) => (
+                    <option key={c.key} value={c.key}>{c.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="overflow-y-auto max-h-[600px]">
@@ -352,59 +394,64 @@ export default function AdminDashboard() {
                 <div className="p-10 text-center text-sm text-slate-500">Cargando documentos…</div>
               ) : documents.length === 0 ? (
                 <div className="p-10 text-center text-sm text-slate-500">
-                  Aún no hay documentos. Sube el primero con el formulario.
+                  {filtroAnio || filtroCategoria
+                    ? "Ningún documento de este cliente coincide con los filtros."
+                    : "Este cliente aún no tiene documentos. Sube el primero con el formulario."}
                 </div>
               ) : (
                 <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
                   <thead className="bg-slate-50/60 dark:bg-slate-950/40 sticky top-0">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Archivo</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Cliente</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Categoría</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Carpeta</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Fecha</th>
                       <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Acción</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-                    {documents.map((doc) => (
-                      <tr key={doc.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                        <td className="px-6 py-3">
-                          <div className="flex items-center gap-3">
-                            <FileText className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                            <div>
-                              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{doc.nombre}</p>
-                              <p className="text-xs text-slate-400">{resolverCategoria(doc.categoria).label} · {formatSize(doc.size_bytes)}</p>
+                    {documents.map((doc) => {
+                      const cat = resolverCategoria(doc.categoria);
+                      return (
+                        <tr key={doc.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                          <td className="px-6 py-3">
+                            <div className="flex items-center gap-3">
+                              <FileText className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                              <div>
+                                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{doc.nombre}</p>
+                                <p className="text-xs text-slate-400">{formatSize(doc.size_bytes)}</p>
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-3 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">
-                          {doc.clientes?.razon_social ?? "—"}
-                        </td>
-                        <td className="px-6 py-3 whitespace-nowrap">
-                          <span className="text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2.5 py-1 rounded-md">
-                            {doc.anio} / {doc.mes}
-                          </span>
-                        </td>
-                        <td className="px-6 py-3 whitespace-nowrap text-xs text-slate-500">
-                          {new Date(doc.created_at).toLocaleDateString("es-CL")}
-                        </td>
-                        <td className="px-6 py-3 whitespace-nowrap text-right">
-                          <button
-                            onClick={() => handleDelete(doc)}
-                            disabled={deletingId === doc.id}
-                            title="Eliminar documento"
-                            aria-label={`Eliminar ${doc.nombre}`}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-60"
-                          >
-                            {deletingId === doc.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="w-4 h-4" />
-                            )}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="px-6 py-3 whitespace-nowrap">
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${cat.chipCls}`}>{cat.label}</span>
+                          </td>
+                          <td className="px-6 py-3 whitespace-nowrap">
+                            <span className="text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2.5 py-1 rounded-md">
+                              {doc.anio} / {doc.mes}
+                            </span>
+                          </td>
+                          <td className="px-6 py-3 whitespace-nowrap text-xs text-slate-500">
+                            {new Date(doc.created_at).toLocaleDateString("es-CL")}
+                          </td>
+                          <td className="px-6 py-3 whitespace-nowrap text-right">
+                            <button
+                              onClick={() => handleDelete(doc)}
+                              disabled={deletingId === doc.id}
+                              title="Eliminar documento"
+                              aria-label={`Eliminar ${doc.nombre}`}
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-60"
+                            >
+                              {deletingId === doc.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               )}
