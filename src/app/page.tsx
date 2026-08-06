@@ -32,7 +32,7 @@ import IntroSplash from "@/components/IntroSplash";
 import { createClient } from "@/lib/supabase/client";
 
 // Página de reservas de Google Calendar (Ajustes → Programación de citas)
-const GOOGLE_CALENDAR_URL = "https://calendar.app.google/st8J2gHf42X8AAk89";
+const GOOGLE_CALENDAR_URL = "https://calendar.google.com/appointments/schedules/AcZssZ1OAvlHnKVw41rl46K5nqQbYYST0bDE-B7EWfujRJXAic402JfhC0ahv7ZPPnny9RP3XLMYfQxA";
 
 // WhatsApp de contacto, con mensaje prellenado según el origen del clic
 const WHATSAPP_NUMERO = "56958508710";
