@@ -138,6 +138,25 @@ export default function MetricasPage() {
       ]
     : [];
 
+  // KPIs acumulados del año: suma de todos los períodos con el mismo año
+  const anioSeleccionado = selectedPeriod?.split("-")[0];
+  const metricasDelAnio = metricas.filter((m) => m.periodo.startsWith(anioSeleccionado));
+  const kpisAcumulados = {
+    ppm: metricasDelAnio.reduce((s, m) => s + m.ppm, 0),
+    ingresos: metricasDelAnio.reduce((s, m) => s + m.ingresos, 0),
+    gastos: metricasDelAnio.reduce((s, m) => s + m.gastos, 0),
+    remuneraciones: metricasDelAnio.reduce((s, m) => s + m.remuneraciones, 0),
+    iva: metricasDelAnio.reduce((s, m) => s + m.iva, 0),
+  };
+  const kpiCardsAcumulados = [
+    { label: "PPM", value: kpisAcumulados.ppm, icon: Landmark, accent: "text-brand-600", bar: "bg-brand-500" },
+    { label: "Total ingresos", value: kpisAcumulados.ingresos, icon: TrendingUp, accent: "text-emerald-600", bar: "bg-emerald-500" },
+    { label: "Total egresos", value: kpisAcumulados.gastos, icon: TrendingDown, accent: "text-amber-600", bar: "bg-amber-500" },
+    { label: "Total remuneraciones", value: kpisAcumulados.remuneraciones, icon: Users, accent: "text-orange-600", bar: "bg-orange-500" },
+    { label: "Impuesto a pagar", value: kpisAcumulados.iva, icon: ReceiptText, accent: "text-red-600", bar: "bg-red-500" },
+  ];
+  const maxVectorAcumulado = Math.max(1, ...kpiCardsAcumulados.map((k) => k.value));
+
   return (
     <div className="space-y-8">
       {/* Cabecera */}
@@ -228,7 +247,29 @@ export default function MetricasPage() {
             <div className="h-px bg-slate-300 my-3 w-full" />
           </div>
 
-          {/* ---------- TARJETAS KPI ---------- */}
+          {/* ---------- TARJETAS KPI ACUMULADOS ---------- */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-3 print:hidden">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">KPIs ACUMULADOS {anioSeleccionado}</h2>
+              <span className="inline-block bg-yellow-300 text-yellow-900 text-xs font-bold px-2.5 py-1 rounded">Acumulado</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              {kpiCardsAcumulados.map((k) => (
+                <div key={k.label} className="card-lift glass-card p-5 rounded-2xl">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-medium text-slate-500">{k.label}</h3>
+                    <k.icon className={`w-4 h-4 ${k.accent}`} />
+                  </div>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white">{formatCurrency(k.value)}</p>
+                  <div className="mt-3 h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div className={`h-full ${k.bar}`} style={{ width: `${Math.round((k.value / maxVectorAcumulado) * 100)}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* ---------- TARJETAS KPI MENSUALES ---------- */}
           <section className="space-y-4">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white print:hidden">KPIs de {etiquetaPeriodo(selectedPeriod)}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
