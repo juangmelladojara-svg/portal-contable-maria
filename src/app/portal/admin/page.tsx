@@ -58,9 +58,10 @@ export default function AdminDashboard() {
 
   // Filtros del listado: por defecto, solo los documentos del cliente elegido arriba.
   const [filtroAnio, setFiltroAnio] = useState("");
+  const [filtroMes, setFiltroMes] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("");
 
-  // Cargar los documentos del cliente seleccionado, aplicando los filtros de año/categoría.
+  // Cargar los documentos del cliente seleccionado, aplicando los filtros de año/mes/categoría.
   const cargarDocumentos = useCallback(async () => {
     if (!clienteId) {
       setDocuments([]);
@@ -74,11 +75,12 @@ export default function AdminDashboard() {
       .order("created_at", { ascending: false })
       .limit(300);
     if (filtroAnio) query = query.eq("anio", filtroAnio);
+    if (filtroMes) query = query.eq("mes", filtroMes);
     if (filtroCategoria) query = query.eq("categoria", filtroCategoria);
     const { data } = await query;
     setDocuments((data as unknown as Documento[]) ?? []);
     setLoadingDocs(false);
-  }, [supabase, clienteId, filtroAnio, filtroCategoria]);
+  }, [supabase, clienteId, filtroAnio, filtroMes, filtroCategoria]);
 
   // Cargar la lista de clientes al montar y seleccionar el primero por defecto.
   useEffect(() => {
@@ -401,6 +403,16 @@ export default function AdminDashboard() {
                   ))}
                 </select>
                 <select
+                  value={filtroMes}
+                  onChange={(e) => setFiltroMes(e.target.value)}
+                  className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                >
+                  <option value="">Todos los meses</option>
+                  {months.map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+                <select
                   value={filtroCategoria}
                   onChange={(e) => setFiltroCategoria(e.target.value)}
                   className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
@@ -418,7 +430,7 @@ export default function AdminDashboard() {
                 <div className="p-10 text-center text-sm text-slate-500">Cargando documentos…</div>
               ) : documents.length === 0 ? (
                 <div className="p-10 text-center text-sm text-slate-500">
-                  {filtroAnio || filtroCategoria
+                  {filtroAnio || filtroMes || filtroCategoria
                     ? "Ningún documento de este cliente coincide con los filtros."
                     : "Este cliente aún no tiene documentos. Sube el primero con el formulario."}
                 </div>
