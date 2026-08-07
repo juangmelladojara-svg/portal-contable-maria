@@ -246,6 +246,21 @@ export default function AdminDashboard() {
         </p>
       </div>
 
+      {/* Selector único de cliente (controla ambos lados) */}
+      <div className="flex items-end gap-4">
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Selecciona un cliente</label>
+          <select value={clienteId} onChange={(e) => setClienteId(e.target.value)} className={selectCls}>
+            {clientes.length === 0 && <option value="">— Sin clientes aún —</option>}
+            {clientes.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.razon_social} ({c.rut})
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Formulario */}
         <div className="lg:col-span-1">
@@ -267,18 +282,6 @@ export default function AdminDashboard() {
                   <span>{errorMsg}</span>
                 </div>
               )}
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Cliente</label>
-                <select value={clienteId} onChange={(e) => setClienteId(e.target.value)} className={selectCls}>
-                  {clientes.length === 0 && <option value="">— Sin clientes aún —</option>}
-                  {clientes.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.razon_social} ({c.rut})
-                    </option>
-                  ))}
-                </select>
-              </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Categoría</label>
