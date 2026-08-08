@@ -121,6 +121,13 @@ export default function AdminMetricasPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clienteId, mes, anio, rows]);
 
+  // Sincroniza el filtro de empresa (lado derecho) con el cliente seleccionado (lado izquierdo)
+  useEffect(() => {
+    if (clienteId) {
+      setFiltroCliente(clienteId);
+    }
+  }, [clienteId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMsg(null);
