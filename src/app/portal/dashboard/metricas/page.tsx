@@ -153,7 +153,6 @@ export default function MetricasPage() {
     { label: "Total ingresos", value: kpisAcumulados.ingresos, icon: TrendingUp, accent: "text-emerald-600", bar: "bg-emerald-500" },
     { label: "Total egresos", value: kpisAcumulados.gastos, icon: TrendingDown, accent: "text-amber-600", bar: "bg-amber-500" },
     { label: "Total remuneraciones", value: kpisAcumulados.remuneraciones, icon: Users, accent: "text-orange-600", bar: "bg-orange-500" },
-    { label: "Impuesto a pagar", value: kpisAcumulados.iva, icon: ReceiptText, accent: "text-red-600", bar: "bg-red-500" },
   ];
   const maxVectorAcumulado = Math.max(1, ...kpiCardsAcumulados.map((k) => k.value));
 
