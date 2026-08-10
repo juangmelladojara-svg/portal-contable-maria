@@ -1,4 +1,4 @@
-import { TrendingUp, BookOpen, Briefcase, ShieldCheck, Folder, type LucideIcon } from "lucide-react";
+import { TrendingUp, BookOpen, Briefcase, ShieldCheck, Building2, Folder, type LucideIcon } from "lucide-react";
 
 /**
  * Categorías oficiales de documentos del portal.
@@ -39,6 +39,14 @@ export const CATEGORIAS: Categoria[] = [
     icon: Briefcase,
     iconCls: "text-amber-600 dark:text-amber-400",
     chipCls: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",
+  },
+  {
+    key: "Legal y corporativo",
+    label: "Legal y corporativo",
+    desc: "Estatutos, actas, permisos y documentos legales",
+    icon: Building2,
+    iconCls: "text-slate-600 dark:text-slate-400",
+    chipCls: "bg-slate-50 text-slate-700 dark:bg-slate-950/40 dark:text-slate-300",
   },
   {
     key: "Previsional",
