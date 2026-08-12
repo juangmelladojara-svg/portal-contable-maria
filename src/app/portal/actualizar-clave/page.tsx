@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, Loader2, CheckCircle2 } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
 import { createClient } from "@/lib/supabase/client";
 
 export default function ActualizarClavePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
 
   const [password, setPassword] = useState("");
@@ -15,6 +16,35 @@ export default function ActualizarClavePage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [listo, setListo] = useState(false);
+  const [validando, setValidando] = useState(true);
+
+  // Procesar el recovery code de la URL
+  useEffect(() => {
+    const procesarCode = async () => {
+      const code = searchParams.get("code");
+      if (!code) {
+        setError("No se encontró un código de recuperación válido.");
+        setValidando(false);
+        return;
+      }
+
+      try {
+        // Supabase ya procesa automáticamente el código en la URL y crea una sesión temporal
+        // Solo verificamos que haya una sesión activa
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setError("La sesión de recuperación no es válida o ha expirado.");
+        }
+      } catch (err) {
+        console.error("Error al validar código:", err);
+        setError("Error al procesar el código de recuperación.");
+      } finally {
+        setValidando(false);
+      }
+    };
+
+    procesarCode();
+  }, [searchParams, supabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +92,14 @@ export default function ActualizarClavePage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="glass-card rounded-2xl py-8 px-6 sm:px-10">
-          {listo ? (
+          {validando ? (
+            <div className="text-center space-y-4 py-2">
+              <Loader2 className="w-6 h-6 animate-spin mx-auto text-brand-600" />
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                Validando tu enlace de recuperación…
+              </p>
+            </div>
+          ) : listo ? (
             <div className="text-center space-y-4 py-2">
               <div className="mx-auto grid place-items-center w-12 h-12 rounded-full bg-green-50 dark:bg-green-950/40 text-green-600">
                 <CheckCircle2 className="w-6 h-6" />
