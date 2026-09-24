@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, Loader2, CheckCircle2 } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
 import { createClient } from "@/lib/supabase/client";
 
-export default function ActualizarClavePage() {
+function ActualizarClaveForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
@@ -164,5 +164,14 @@ export default function ActualizarClavePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// useSearchParams() exige un límite de Suspense para que el build pueda prerenderizar la ruta.
+export default function ActualizarClavePage() {
+  return (
+    <Suspense fallback={null}>
+      <ActualizarClaveForm />
+    </Suspense>
   );
 }
