@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { UploadCloud, FileText, CheckCircle2, Save, Loader2, AlertCircle, Trash2, Eye } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { CATEGORIAS, resolverCategoria } from "@/lib/categorias";
+import { CATEGORIAS, resolverCategoria, periodoDocumento } from "@/lib/categorias";
 
 interface Cliente {
   id: string;
@@ -55,6 +55,8 @@ export default function AdminDashboard() {
   const [year, setYear] = useState("2025");
   const [files, setFiles] = useState<File[]>([]);
   const [batch, setBatch] = useState<{ done: number; total: number } | null>(null);
+  // Contratos y Prevención se suben sin mes ni año.
+  const sinFecha = !!CATEGORIAS.find((c) => c.key === category)?.sinFecha;
 
   // Filtros del listado: por defecto, solo los documentos del cliente elegido arriba.
   const [filtroAnio, setFiltroAnio] = useState("");
@@ -151,8 +153,8 @@ export default function AdminDashboard() {
         cliente_id: clienteId,
         nombre: f.name,
         categoria: category,
-        anio: year,
-        mes: month,
+        anio: sinFecha ? "" : year,
+        mes: sinFecha ? "" : month,
         storage_path: storagePath,
         size_bytes: f.size,
       });
@@ -295,10 +297,13 @@ export default function AdminDashboard() {
                   ))}
                 </select>
                 <p className="mt-1 text-xs text-slate-400">
-                  El cliente verá sus archivos del mes agrupados por esta categoría.
+                  {sinFecha
+                    ? "Documento vigente: se guarda sin mes ni año y el cliente lo ve en su propia carpeta."
+                    : "El cliente verá sus archivos del mes agrupados por esta categoría."}
                 </p>
               </div>
 
+              {!sinFecha && (
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Mes</label>
@@ -317,6 +322,7 @@ export default function AdminDashboard() {
                   </select>
                 </div>
               </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Archivos PDF/ZIP</label>
@@ -464,7 +470,7 @@ export default function AdminDashboard() {
                           </td>
                           <td className="px-6 py-3 whitespace-nowrap">
                             <span className="text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2.5 py-1 rounded-md">
-                              {doc.anio} / {doc.mes}
+                              {periodoDocumento(doc)}
                             </span>
                           </td>
                           <td className="px-6 py-3 whitespace-nowrap text-xs text-slate-500">

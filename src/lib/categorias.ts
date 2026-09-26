@@ -13,6 +13,10 @@ export interface Categoria {
   /** Clases tailwind para el ícono y el chip de la categoría */
   iconCls: string;
   chipCls: string;
+  /** Documentos permanentes: se suben sin mes ni año y el cliente los ve en una carpeta fija. */
+  sinFecha?: boolean;
+  /** Nombre de la carpeta fija en el dashboard del cliente (solo categorías sin fecha). */
+  carpeta?: string;
 }
 
 export const CATEGORIAS: Categoria[] = [
@@ -45,6 +49,8 @@ export const CATEGORIAS: Categoria[] = [
     key: "Laboral — Contratos y Anexos Vigentes",
     label: "Laboral — Contratos y Anexos Vigentes",
     desc: "Contratos de trabajo y anexos vigentes",
+    sinFecha: true,
+    carpeta: "Contratos y Anexos Vigentes",
     icon: FileSignature,
     iconCls: "text-orange-600 dark:text-orange-400",
     chipCls: "bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300",
@@ -69,6 +75,8 @@ export const CATEGORIAS: Categoria[] = [
     key: "Prevención",
     label: "Prevención — Cumplimiento Laboral y Prevención de Riesgos",
     desc: "Reglamento interno, mutual, prevención de riesgos y fiscalizaciones",
+    sinFecha: true,
+    carpeta: "Prevención",
     icon: HardHat,
     iconCls: "text-rose-600 dark:text-rose-400",
     chipCls: "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300",
@@ -97,4 +105,12 @@ const LEGADO: Record<string, string> = {
 export function resolverCategoria(valor: string): Categoria {
   const key = LEGADO[valor] ?? valor;
   return CATEGORIAS.find((c) => c.key === key) ?? CATEGORIA_OTROS;
+}
+
+/** Categorías cuyos documentos no llevan mes ni año. */
+export const CATEGORIAS_SIN_FECHA = CATEGORIAS.filter((c) => c.sinFecha);
+
+/** Etiqueta del período de un documento: "2026 / Julio" o "Vigente" si no tiene fecha. */
+export function periodoDocumento(doc: { anio: string; mes: string }): string {
+  return doc.anio ? `${doc.anio} / ${doc.mes}` : "Vigente";
 }

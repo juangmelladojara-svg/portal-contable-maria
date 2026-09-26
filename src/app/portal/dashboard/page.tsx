@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Folder, FileText, Download, ChevronRight, ChevronDown, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { CATEGORIAS, CATEGORIA_OTROS, resolverCategoria, type Categoria } from "@/lib/categorias";
+import { CATEGORIAS, CATEGORIAS_SIN_FECHA, CATEGORIA_OTROS, resolverCategoria, type Categoria } from "@/lib/categorias";
 
 interface Documento {
   id: string;
@@ -33,7 +33,10 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   // currentPath: [] = años, [year] = meses, [year, month] = archivos
+  // [carpeta] también puede ser una carpeta fija (Contratos / Prevención) sin mes ni año.
   const [currentPath, setCurrentPath] = useState<string[]>([]);
+  const carpetaFija =
+    currentPath.length === 1 ? CATEGORIAS_SIN_FECHA.find((c) => c.carpeta === currentPath[0]) : undefined;
   // Categorías contraídas dentro de la vista de un mes (key → true = colapsada)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
@@ -69,14 +72,46 @@ export default function DashboardPage() {
     window.open(data.signedUrl, "_blank");
   };
 
-  const FolderCard = ({ label, onClick }: { label: string; onClick: () => void }) => (
-    <button
-      onClick={onClick}
-      className="card-lift glass-card rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-center group"
-    >
-      <Folder className="w-12 h-12 text-brand-400 group-hover:text-brand-600 transition-colors" strokeWidth={1.5} />
-      <span className="font-semibold text-slate-800 dark:text-slate-200">{label}</span>
-    </button>
+  const FolderCard = ({ label, onClick, cat }: { label: string; onClick: () => void; cat?: Categoria }) => {
+    const Icon = cat?.icon ?? Folder;
+    return (
+      <button
+        onClick={onClick}
+        className="card-lift glass-card rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-center group"
+      >
+        <Icon
+          className={`w-12 h-12 transition-colors ${cat ? cat.iconCls : "text-brand-400 group-hover:text-brand-600"}`}
+          strokeWidth={1.5}
+        />
+        <span className="font-semibold text-slate-800 dark:text-slate-200">{label}</span>
+      </button>
+    );
+  };
+
+  const DocRow = ({ doc }: { doc: Documento }) => (
+    <div className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+      <span className="grid place-items-center w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 flex-shrink-0">
+        <FileText className="w-4 h-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{doc.nombre}</p>
+        <p className="text-xs text-slate-500">
+          {formatSize(doc.size_bytes)} · {new Date(doc.created_at).toLocaleDateString("es-CL")}
+        </p>
+      </div>
+      <button
+        onClick={() => handleDownload(doc)}
+        disabled={downloadingId === doc.id}
+        className="inline-flex items-center gap-1.5 rounded-lg bg-brand-50 dark:bg-brand-900/20 px-3 py-1.5 text-sm font-medium text-brand-600 hover:text-brand-800 dark:hover:text-brand-400 transition-colors disabled:opacity-60 flex-shrink-0"
+      >
+        {downloadingId === doc.id ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <Download className="w-4 h-4" />
+        )}
+        <span className="hidden sm:inline">Descargar</span>
+      </button>
+    </div>
   );
 
   const renderContent = () => {
@@ -100,11 +135,31 @@ export default function DashboardPage() {
     }
 
     if (currentPath.length === 0) {
-      const years = Array.from(new Set(documents.map((d) => d.anio))).sort((a, b) => b.localeCompare(a));
+      // Los documentos sin fecha (anio vacío) viven en su carpeta fija, no dentro de un año.
+      const years = Array.from(new Set(documents.filter((d) => d.anio).map((d) => d.anio))).sort((a, b) => b.localeCompare(a));
       return (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {years.map((year) => (
             <FolderCard key={year} label={year} onClick={() => setCurrentPath([year])} />
+          ))}
+          {CATEGORIAS_SIN_FECHA.map((cat) => (
+            <FolderCard key={cat.key} label={cat.carpeta!} cat={cat} onClick={() => setCurrentPath([cat.carpeta!])} />
+          ))}
+        </div>
+      );
+    }
+
+    if (carpetaFija) {
+      const docs = documents.filter((d) => resolverCategoria(d.categoria).key === carpetaFija.key);
+      return docs.length === 0 ? (
+        <div className="glass-card rounded-2xl p-12 text-center">
+          <p className="text-slate-600 dark:text-slate-300 font-medium">Aún no hay documentos en esta carpeta.</p>
+          <p className="text-sm text-slate-400 mt-1">{carpetaFija.desc}.</p>
+        </div>
+      ) : (
+        <div className="glass-card rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
+          {docs.map((doc) => (
+            <DocRow key={doc.id} doc={doc} />
           ))}
         </div>
       );
@@ -127,7 +182,7 @@ export default function DashboardPage() {
     const files = documents.filter((d) => d.anio === year && d.mes === month);
 
     // Agrupar por categoría: las 4 oficiales en orden + "Otros" para etiquetas heredadas.
-    const grupos: { cat: Categoria; docs: Documento[] }[] = CATEGORIAS.map((cat) => ({
+    const grupos: { cat: Categoria; docs: Documento[] }[] = CATEGORIAS.filter((cat) => !cat.sinFecha).map((cat) => ({
       cat,
       docs: files.filter((d) => resolverCategoria(d.categoria).key === cat.key),
     }));
@@ -169,32 +224,7 @@ export default function DashboardPage() {
                 ) : (
                   <div className="border-t border-slate-100 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800">
                     {docs.map((doc) => (
-                      <div
-                        key={doc.id}
-                        className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
-                      >
-                        <span className="grid place-items-center w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 flex-shrink-0">
-                          <FileText className="w-4 h-4" />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{doc.nombre}</p>
-                          <p className="text-xs text-slate-500">
-                            {formatSize(doc.size_bytes)} · {new Date(doc.created_at).toLocaleDateString("es-CL")}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => handleDownload(doc)}
-                          disabled={downloadingId === doc.id}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-brand-50 dark:bg-brand-900/20 px-3 py-1.5 text-sm font-medium text-brand-600 hover:text-brand-800 dark:hover:text-brand-400 transition-colors disabled:opacity-60 flex-shrink-0"
-                        >
-                          {downloadingId === doc.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Download className="w-4 h-4" />
-                          )}
-                          <span className="hidden sm:inline">Descargar</span>
-                        </button>
-                      </div>
+                      <DocRow key={doc.id} doc={doc} />
                     ))}
                   </div>
                 )
@@ -237,7 +267,7 @@ export default function DashboardPage() {
         </div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
           {currentPath.length === 0 && "Explorar carpetas"}
-          {currentPath.length === 1 && `Archivos de ${currentPath[0]}`}
+          {currentPath.length === 1 && (carpetaFija ? carpetaFija.label : `Archivos de ${currentPath[0]}`)}
           {currentPath.length === 2 && `${currentPath[1]} ${currentPath[0]}`}
         </h1>
       </div>

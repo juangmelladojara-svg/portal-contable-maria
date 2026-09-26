@@ -23,7 +23,7 @@ import {
   UploadCloud,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { resolverCategoria } from "@/lib/categorias";
+import { resolverCategoria, periodoDocumento } from "@/lib/categorias";
 
 interface Cliente {
   id: string;
@@ -807,7 +807,7 @@ export default function AdminClientesPage() {
                                     <td className="px-4 py-2">
                                       <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${cat.chipCls}`}>{cat.label}</span>
                                     </td>
-                                    <td className="px-4 py-2 whitespace-nowrap text-xs text-slate-500">{d.anio} / {d.mes}</td>
+                                    <td className="px-4 py-2 whitespace-nowrap text-xs text-slate-500">{periodoDocumento(d)}</td>
                                     <td className="px-4 py-2 whitespace-nowrap text-right text-xs text-slate-500">
                                       {new Date(d.created_at).toLocaleDateString("es-CL")}
                                     </td>
