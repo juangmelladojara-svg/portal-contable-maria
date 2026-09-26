@@ -292,7 +292,8 @@ export default function AdminDashboard() {
                 <select value={category} onChange={(e) => setCategory(e.target.value)} className={selectCls}>
                   {CATEGORIAS.map((c) => (
                     <option key={c.key} value={c.key}>
-                      {c.label} — {c.desc}
+                      {/* Si el nombre ya trae su detalle ("Laboral — …"), no repetimos la descripción. */}
+                      {c.label.includes(" — ") ? c.label : `${c.label} — ${c.desc}`}
                     </option>
                   ))}
                 </select>
