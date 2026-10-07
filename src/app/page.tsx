@@ -30,6 +30,8 @@ import {
 import BrandMark from "@/components/BrandMark";
 import IntroSplash from "@/components/IntroSplash";
 import { createClient } from "@/lib/supabase/client";
+import { planes, factoresRenta } from "@/lib/planes";
+import FaqSection from "@/components/FaqSection";
 
 // Página de reservas de Google Calendar (Ajustes → Programación de citas)
 const GOOGLE_CALENDAR_URL = "https://calendar.google.com/appointments/schedules/AcZssZ1OAvlHnKVw41rl46K5nqQbYYST0bDE-B7EWfujRJXAic402JfhC0ahv7ZPPnny9RP3XLMYfQxA";
@@ -90,99 +92,6 @@ const remDocs = [
   { label: "Comprobantes de vacaciones", icon: CalendarCheck },
   { label: "Contrato de trabajo", icon: FileText },
   { label: "Finiquitos", icon: FileCheck2 },
-];
-
-// Planes mensuales
-interface Plan {
-  num: string;
-  nombre: string;
-  tagline: string;
-  precio: string;
-  custom: boolean;
-  incluye: string[];
-  ideal: string;
-  popular: boolean;
-}
-
-const planes: Plan[] = [
-  {
-    num: "01",
-    nombre: "Inicio Pyme",
-    tagline: "Empieza con el pie derecho.",
-    precio: "$65.000",
-    custom: false,
-    incluye: [
-      "Acceso al Portal del Cliente.",
-      "Dashboard financiero con indicadores (KPIs).",
-      "Gestión mensual del F29.",
-      "Soporte vía WhatsApp en horario de atención.",
-    ],
-    ideal: "Profesionales, emprendedores y empresas sin trabajadores.",
-    popular: false,
-  },
-  {
-    num: "02",
-    nombre: "Pyme Gestión",
-    tagline: "Ordena la operación de tu empresa.",
-    precio: "$120.000",
-    custom: false,
-    incluye: [
-      "Todo lo del Plan Inicio Pyme.",
-      "Gestión de compras y ventas.",
-      "Gestión de Recursos Humanos.",
-      "Previred.",
-      "Certificados F30 y F30-1.",
-      "Portal del Cliente actualizado mensualmente.",
-    ],
-    ideal: "Empresas con 1 a 3 trabajadores.",
-    popular: false,
-  },
-  {
-    num: "03",
-    nombre: "Pyme Pro",
-    tagline: "Convierte tus números en decisiones.",
-    precio: "$180.000",
-    custom: false,
-    incluye: [
-      "Todo lo del Plan Pyme Gestión.",
-      "Revisión y análisis de los KPIs del Portal.",
-      "Reunión de seguimiento financiero semestral.",
-      "Informe Gerencial Semestral.",
-      "Revisión tributaria preventiva.",
-      "Planificación para la Operación Renta.",
-      "Atención prioritaria vía WhatsApp.",
-    ],
-    ideal: "Empresas con 4 a 7 trabajadores.",
-    popular: true,
-  },
-  {
-    num: "04",
-    nombre: "Empresas · Corporativo",
-    tagline: "Una solución diseñada para tu empresa.",
-    precio: "Cotización",
-    custom: true,
-    incluye: [
-      "Diagnóstico inicial de la empresa.",
-      "Propuesta de servicio personalizada.",
-      "Configuración del Portal de Gestión Empresarial.",
-      "Gestión contable, tributaria y laboral a medida.",
-      "Acompañamiento permanente.",
-      "Reuniones periódicas de seguimiento.",
-      "Atención prioritaria.",
-    ],
-    ideal: "Empresas con más de 7 trabajadores, múltiples sucursales o alto volumen de documentos.",
-    popular: false,
-  },
-];
-
-// Factores que inciden en el valor de la Declaración Anual de Renta
-const factoresRenta = [
-  "Cantidad de Declaraciones Juradas a presentar.",
-  "Preparación y presentación del Formulario 22.",
-  "Participación de socios y declaraciones asociadas.",
-  "Registros empresariales tributarios (RAI, DDAN, REX, SAC, entre otros, cuando corresponda).",
-  "Rectificaciones o regularizaciones.",
-  "Revisión y análisis de la información tributaria del ejercicio.",
 ];
 
 /** Logo de cliente (viene de Supabase); si la imagen falla, muestra el nombre. */
@@ -537,6 +446,7 @@ export default function Home() {
           <nav className="hidden lg:flex items-center gap-8 text-sm font-medium text-slate-600 dark:text-slate-300">
             <a href="#servicios" className="hover:text-brand-600 transition-colors">Servicios</a>
             <a href="#planes" className="hover:text-brand-600 transition-colors">Planes</a>
+            <a href="#preguntas" className="hover:text-brand-600 transition-colors">Preguntas</a>
             <a href="#integraciones" className="hover:text-brand-600 transition-colors">Integraciones</a>
             <a href="#portal" className="hover:text-brand-600 transition-colors">Portal</a>
             <a href="#contacto" className="hover:text-brand-600 transition-colors">Contacto</a>
@@ -1143,6 +1053,9 @@ export default function Home() {
             </p>
           </div>
         </section>
+
+        {/* ============== 5c. PREGUNTAS FRECUENTES ============== */}
+        <FaqSection />
 
         {/* ============== 6. CTA FINAL (cierre navy, tipográfico) ============== */}
         <section className="cta-final relative overflow-hidden bg-brand-900 pt-24 pb-24 lg:pt-36 lg:pb-32">
